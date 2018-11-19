@@ -700,7 +700,7 @@ namespace Mojo.Graphics
             if (n < 3 || n > 8192) return;
             unsafe
             {
-                var ptr = AddDrawOp((int)PrimType.Tri, n, null, _currentEffect, _blendMode);
+                var ptr = AddDrawOp(n, 1, null, _currentEffect, _blendMode);
                 for (int i = 0; i < n; ++i)
                 { 
                     ptr[i].Transform(verts[i * 2], verts[i * 2 + 1], _transform, _color);
