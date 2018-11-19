@@ -6,18 +6,6 @@ using Mojo.Graphics;
 
 namespace Example
 {
-    /*
-    
-        Hi, 
-        I'd like to share this with you, maybe someone else will find it useful.
-        Since monogame doesn't have an easy to use high-level 2d API, except SpriteBAtch, 
-        I more or less ported Monkey2's 2D Drawing API 
-        
-        - no 1:1 port
-        - 2d-NormalMapping is not yet implemented
-
-    */
-
     public class Game1 : MojoGame
     {
         private const float RAD_TO_DEG = 57.2957795130823208767981548141052f;
