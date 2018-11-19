@@ -66,6 +66,7 @@ namespace Mojo.Graphics
         private IShadowRenderer _shadowRenderer = new PenumbraShadow();
         private int _width = 0;
         private int _height = 0;
+        private MojoVertex[] _lightVertices = new MojoVertex[4];
 
         public Color AmbientColor { get; set; }
 
@@ -74,7 +75,7 @@ namespace Mojo.Graphics
             _shadowBuffer = new Buffer(4096);
             _spotLightEffect = new SpotLightEffect(Global.Content.Load<Effect>("Effects/spot_light"));
             _pointLightEffect = new PointLightEffect(Global.Content.Load<Effect>("Effects/point_light"));
-
+   
             Resize(c.Width, c.Height);
 
             _canvas = new Canvas(LightMap);
@@ -93,11 +94,12 @@ namespace Mojo.Graphics
             }
         }
 
-        public void AddShadowCaster(Canvas c, Vector2[] vertices , float tx, float ty)
+        public void AddShadowCaster(Canvas c, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated)
         {
             var op = new ShadowOp();
             op.Caster = vertices;
             op.Offset = _shadowVertices.Count;
+            op.ShadowType = shadowType;
 
             _shadowOps.Add(op);
 
@@ -184,8 +186,6 @@ namespace Mojo.Graphics
 
             if (_canvas.CanFlush)
             {
-                //_canvas.Flush();
-          
                 foreach (var sop in _shadowOps)
                 {
                     var blend = sop.ShadowType == ShadowType.Illuminated ? 
@@ -193,32 +193,15 @@ namespace Mojo.Graphics
                    
                     var vert0 = sop.Offset;
                     var nverts = sop.Caster.Length;
+
                     unsafe
                     {
-                        // TODO
-                        // - add caster object
-
                         var count = sop.Caster.Length;
-                         
-                        if (count == 4)
+                        var ptr = _canvas.AddDrawOp(count, 1, null, _canvas.DefaultEffect, blend);
+                        for (int i = 0; i < count; ++i)
                         {
-                            var ptr =  _canvas.AddDrawOp((int)PrimType.Quad, 1, null, _canvas.DefaultEffect, blend);
-                            for (int i = 0; i < count; ++i)
-                            {
-                                var v = _shadowVertices[sop.Offset + i];
-                                ptr[i].Transform(v.X, v.Y, Color.Black);
-                            }
-                        }
-                        else
-                        {
-                            // TODO:
-                            // - fix polygon rendering
-                            var ptr = _canvas.AddDrawOp(count, 1, null, _canvas.DefaultEffect, blend);
-                            for (int i = 0; i < count; ++i)
-                            {
-                                var v = _shadowVertices[sop.Offset + i];
-                                ptr[i].Transform(v.X, v.Y, Color.Black);
-                            }
+                            var v = _shadowVertices[sop.Offset + i];
+                            ptr[i].Transform(v.X, v.Y, Color.Black);
                         }
                     }
                     
@@ -266,12 +249,12 @@ namespace Mojo.Graphics
             _canvas.PushMatrix();
 
             // fill lightmap with ambient color
-            _canvas.RenderTarget = _lightmap;
-            _canvas.Clear(AmbientColor);
+            Global.Device.SetRenderTarget(_lightmap);
+            Global.Device.Clear(AmbientColor);
 
             // clear shadow map
-            _canvas.RenderTarget = _shadowmap;
-            _canvas.Clear(Color.White);
+            Global.Device.SetRenderTarget(_shadowmap);
+            Global.Device.Clear(Color.White);
 
             _shadowRenderer.OnUpdateFrame(_canvas);
 
@@ -313,17 +296,26 @@ namespace Mojo.Graphics
             _pointLightEffect.Range = op.Range;
             _pointLightEffect.Intensity = op.Intensity;
             _pointLightEffect.Position = new Vector2(op.Location.X, op.Location.Y);
+            _pointLightEffect.CurrentTechnique.Passes.First().Apply();
 
-            _canvas.RenderTarget = _lightmap;
-            _canvas.BlendMode = BlendMode.Additive;
-            _canvas.Effect = _pointLightEffect;
-            _canvas.SetMatrix(op.Transform);
-            _canvas.Color =  op.Color;
-            _canvas.Alpha = op.Alpha;
-            _canvas.DrawRect( - op.Range, - op.Range, op.Range * 2, op.Range * 2);
-            _canvas.Flush();
+            unsafe
+            {
+                fixed (MojoVertex* ptr = &_lightVertices[0])
+                {
+                    ptr[0].Transform(-op.Range, -op.Range, op.Transform, op.Color);
+                    ptr[1].Transform(-op.Range + op.Range * 2, -op.Range, op.Transform, op.Color);
+                    ptr[2].Transform(-op.Range + op.Range * 2, -op.Range + op.Range * 2, op.Transform, op.Color);
+                    ptr[3].Transform(-op.Range, -op.Range + op.Range * 2, op.Transform, op.Color);
+                }
+            }
+
+            Global.Device.SetRenderTarget(_lightmap);
+            Global.Device.BlendState = MojoBlend.BlendAdd;
+            Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
+                         PrimitiveType.TriangleList, _lightVertices, 0, 4,
+                         Global.QuadIndices, 0, 2);
         }
-        
+
         private void DrawSpotLight(SpotLightOp op)
         {
             _spotLightEffect.Shadowmap = _shadowmap;
@@ -334,18 +326,27 @@ namespace Mojo.Graphics
             _spotLightEffect.Inner = op.Inner;
             _spotLightEffect.Outer = op.Outer;
             _spotLightEffect.LightDir = op.Dir;
+            _spotLightEffect.CurrentTechnique.Passes.First().Apply();
 
-            _canvas.RenderTarget = _lightmap;
-            _canvas.BlendMode = BlendMode.Additive;
-            _canvas.Effect = _spotLightEffect;
-            _canvas.PushMatrix();
-            _canvas.SetMatrix(op.Transform);
-            _canvas.Translate(0, -op.Range);
-            _canvas.Color = op.Color;
-            _canvas.Alpha = op.Alpha;
-            _canvas.DrawRect(0,0, op.Range, op.Range*2);
-            _canvas.PopMatrix();
-            _canvas.Flush();
+            var transform = op.Transform;
+            transform.Translate(0, -op.Range);
+
+            unsafe
+            {
+                fixed (MojoVertex* ptr = &_lightVertices[0])
+                {
+                    ptr[0].Transform(0, 0, transform, op.Color);
+                    ptr[1].Transform(0 + op.Range, 0, transform, op.Color);
+                    ptr[2].Transform(0 + op.Range, 0 + op.Range * 2, transform, op.Color);
+                    ptr[3].Transform(0, 0 + op.Range * 2, transform, op.Color);
+                }
+            }
+
+            Global.Device.SetRenderTarget(_lightmap);
+            Global.Device.BlendState = MojoBlend.BlendAdd;
+            Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
+                         PrimitiveType.TriangleList, _lightVertices, 0, 4,
+                         Global.QuadIndices, 0, 2);
         }
 
     }

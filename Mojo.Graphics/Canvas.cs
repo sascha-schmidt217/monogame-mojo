@@ -17,6 +17,13 @@ namespace Mojo.Graphics
         Quad = 4
     }
 
+    public enum OutlineMode
+    {
+        None = 0,
+        Solid = 1,
+        Smooth = 2
+    }
+
     public enum BlendMode
     {
         None,
@@ -53,6 +60,7 @@ namespace Mojo.Graphics
         private Color _color;
         private Color _internalColor = Color.White;
         private Image _diffuseMap;
+        private Image _normalMap;
         private DrawOp _drawOp = new DrawOp();
         private Quad _rect = new Quad();
         private Effect _currentEffect;
@@ -64,11 +72,16 @@ namespace Mojo.Graphics
         private SpriteFont _spriteFont;
         private bool initialized = false;
         private Image _fontImage;
+        private static Color _translucence = new Color(0, 0, 0, 0);
 
         public GraphicsDevice Device { get; private set; }
         public BasicEffect DefaultEffect { get; private set; }
         public int Width { get; private set; }
         public int Height { get; private set; }
+        public bool LineSmooth { get; set; } = false;
+        public OutlineMode OutlineMode { get; set; } = OutlineMode.None;
+        public Color OutlineColor { get; set; } = Color.White;
+        public float OutlineWidth { get; set; } = 2;
 
         /// <summary>
         /// The current drawing matrix
@@ -235,13 +248,20 @@ namespace Mojo.Graphics
                 Device.SamplerStates[0] = SamplerState.PointClamp;
             }
 
-            RenderDrawOps();
-
             if(_lighting)
+            { 
+                // diffuse
+                //
+                //Device.SetRenderTarget(_diffuseMap);
+                RenderDrawOps();
+
+                // normal
+                //Device.SetRenderTarget(_normalMap);
+                //RenderDrawOps();
+            }
+            else
             {
-                // TODO
-                // render normal map
-                // render specular map
+                RenderDrawOps();
             }
 
             if (!preserveBuffer)
@@ -329,9 +349,17 @@ namespace Mojo.Graphics
             _lighting = true;
 
             Begin();
-            RenderTarget = Global.CreateRenderImage(Width, Height, ref _diffuseMap);
 
+            // create gbuffer
+            //
+            _diffuseMap = Global.CreateRenderImage(Width, Height, ref _diffuseMap);
             _diffuseMap.RenderTarget.Name = "Diffuse";
+            _normalMap = Global.CreateRenderImage(Width, Height, ref _normalMap);
+            _normalMap.RenderTarget.Name = "Normal";
+
+            // TODO!!!!
+            // Cls does not work if not initialized in lighting mode!
+            RenderTarget = _diffuseMap;
         }
 
         /// <summary>
@@ -340,14 +368,17 @@ namespace Mojo.Graphics
         public void EndLighting()
         {
             if (!_lighting) return;
-            _lighting = false;
 
-            // Flush everything to diffusemap
+            // draw everything
+            //
             Flush();
+
+            // disable lighting here: Rendertargets + Lighting does not work yet
+            //
+            _lighting = false;
 
             // Update lighting
             //
-
             LightRenderer.AmbientColor = AmbientColor;
             LightRenderer.Resize(this.Width, this.Height);
             LightRenderer.Render();
@@ -372,11 +403,6 @@ namespace Mojo.Graphics
             DrawImage(LightRenderer.LightMap, 0, 0);
             Flush();
             PopMatrix();
-
-            // the device could be used in multiple canvases,
-            // herefore the rendertarget must be deactivated.
-            //
-            //Device.SetRenderTarget(null);
         }
 
         public void Begin()
@@ -561,21 +587,29 @@ namespace Mojo.Graphics
         {
             unsafe
             {
+                float x0 = x;
+                float y0 = y;
+                float x1 = x + w;
+                float y1 = y;
+                float x2 = x + w;
+                float y2 = y + h;
+                float x3 = x;
+                float y3 = y + h;
+
                 var ptr = AddDrawOp((int)PrimType.Quad, 1, null, _currentEffect, _blendMode);
 
-                _rect.vertex0.X = x;
-                _rect.vertex0.Y = y;
-                _rect.vertex1.X = x + w;
-                _rect.vertex1.Y = y;
-                _rect.vertex2.X = x + w;
-                _rect.vertex2.Y = y + h;
-                _rect.vertex3.X = x;
-                _rect.vertex3.Y = y + h;
+                ptr[0].Transform( x0, y0, _transform, _color);
+                ptr[1].Transform( x1, y1, _transform, _color); 
+                ptr[2].Transform( x2, y2, _transform, _color);
+                ptr[3].Transform( x3, y3, _transform, _color);
 
-                ptr[0].Transform( _rect.vertex0.X, _rect.vertex0.Y, _transform, _color);
-                ptr[1].Transform( _rect.vertex1.X, _rect.vertex1.Y, _transform, _color);
-                ptr[2].Transform( _rect.vertex2.X, _rect.vertex2.Y, _transform, _color);
-                ptr[3].Transform( _rect.vertex3.X, _rect.vertex3.Y, _transform, _color);
+                if(OutlineMode != OutlineMode.None)
+                {
+                    DrawOutlineLine(x0, y0, x1, y1);
+                    DrawOutlineLine(x1, y1, x2, y2);
+                    DrawOutlineLine(x2, y2, x3, y3);
+                    DrawOutlineLine(x3, y3, x0, y0);
+                }
             }
 
         }
@@ -636,6 +670,7 @@ namespace Mojo.Graphics
             DrawLine((float)p0.X, (float)p0.Y, (float)p1.X, (float)p1.Y);
         }
 
+       
         /// <summary>
         /// Draws a line in the current [[Color]] using the current [[BlendMode]].
         /// </summary>
@@ -643,11 +678,95 @@ namespace Mojo.Graphics
         {
             unsafe
             {
-                var ptr = AddDrawOp((int)PrimType.Line, 1, null, _currentEffect, _blendMode);
-                ptr[0].Transform(x0, y0, _transform, _color);
-                ptr[1].Transform(x1, y1, _transform, _color);
+                if (LineWidth <= 0)
+                {
+                    var ptr = AddDrawOp((int)PrimType.Line, 1, null, _currentEffect, _blendMode);
+                    ptr[0].Transform(x0, y0, _transform, _color);
+                    ptr[1].Transform(x1, y1, _transform, _color);
+                    return;
+                }
+
+                float dx = y0 - y1;
+                float dy = x1 - x0;
+                float sc = 0.5f / (float)Math.Sqrt(dx * dx + dy * dy) * LineWidth;
+                dx *= sc;
+                dy *= sc;
+
+                if (!LineSmooth)
+                {
+                    var ptr = AddDrawOp((int)PrimType.Quad, 1, null, _currentEffect, _blendMode);
+                    ptr[0].Transform(x0 - dx, y0 - dy, _transform, _color);
+                    ptr[1].Transform(x0 + dx, y0 + dy, _transform, _color);
+                    ptr[2].Transform(x1 + dx, y1 + dy, _transform, _color);
+                    ptr[3].Transform(x1 - dx, y1 - dy, _transform, _color);
+                }
+                else
+                {
+                    var ptr = AddDrawOp((int)PrimType.Quad, 2, null, _currentEffect, _blendMode);
+
+                    ptr[0].Transform(x0, y0, _transform, _color);
+                    ptr[1].Transform(x1, y1, _transform, _color);
+
+                    ptr[2].Transform(x1 - dx, y1 - dy, _transform, _translucence);
+                    ptr[3].Transform(x0 - dx, y0 - dy, _transform, _translucence);
+
+                    ptr[4].Transform(x0 + dx, y0 + dy, _transform, _translucence);
+                    ptr[5].Transform(x1 + dx, y1 + dy, _transform, _translucence);
+
+                    ptr[6].Transform(x1, y1, _transform, _color);
+                    ptr[7].Transform(x0, y0, _transform, _color);
+                }
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void DrawOutlineLine(float x0, float y0, float x1, float y1)
+        {
+            unsafe
+            {
+                var blendMode = OutlineMode == OutlineMode.Smooth ? BlendMode.Alpha : BlendMode.Opaque;
+
+                if (OutlineWidth <= 0)
+                {
+                    var ptr = AddDrawOp((int)PrimType.Line, 1, null, _currentEffect, blendMode);
+                    ptr[0].Transform(x0, y0, _transform, OutlineColor);
+                    ptr[1].Transform(x1, y1, _transform, OutlineColor);
+                    return;
+                }
+
+                float dx = y0 - y1;
+                float dy = x1 - x0;
+                float sc = 0.5f / (float)Math.Sqrt(dx * dx + dy * dy) * OutlineWidth;
+                dx *= sc;
+                dy *= sc;
+
+                if (OutlineMode == OutlineMode.Solid)
+                {
+                    var ptr = AddDrawOp((int)PrimType.Quad, 1, null, _currentEffect, _blendMode);
+                    ptr[0].Transform(x0 - dx, y0 - dy, _transform, OutlineColor);
+                    ptr[1].Transform(x0 + dx, y0 + dy, _transform, OutlineColor);
+                    ptr[2].Transform(x1 + dx, y1 + dy, _transform, OutlineColor);
+                    ptr[3].Transform(x1 - dx, y1 - dy, _transform, OutlineColor);
+                }
+                else
+                {
+                    var ptr = AddDrawOp((int)PrimType.Quad, 2, null, _currentEffect, blendMode);
+
+                    ptr[0].Transform(x0, y0, _transform, OutlineColor);
+                    ptr[1].Transform(x1, y1, _transform, OutlineColor);
+
+                    ptr[2].Transform(x1 - dx, y1 - dy, _transform, _translucence);
+                    ptr[3].Transform(x0 - dx, y0 - dy, _transform, _translucence);
+
+                    ptr[4].Transform(x0 + dx, y0 + dy, _transform, _translucence);
+                    ptr[5].Transform(x1 + dx, y1 + dy, _transform, _translucence);
+
+                    ptr[6].Transform(x1, y1, _transform, OutlineColor);
+                    ptr[7].Transform(x0, y0, _transform, OutlineColor);
+                }
+            }
+        }
+
 
         /// <summary>
         /// Draws an oval in the current [[Color]] using the current [[BlendMode]].
@@ -1035,7 +1154,7 @@ namespace Mojo.Graphics
                     SetInternalBlendMode(blendMode);
                 }
 
-                if (_drawBuffer.VertexBufferEnabled)
+                if (false)//_drawBuffer.VertexBufferEnabled)
                 {
                     RenderVertexBuffer(_drawBuffer, op.primType, opEffect, op.primOffset, op.primCount * op.primType);
                 }
@@ -1110,24 +1229,27 @@ namespace Mojo.Graphics
                         Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, offset, 0, count / 2);
                         break;
 
-                    case PrimType.Tri:
-
+                    default:
 
                         Device.Indices = Global._iboFan;
-                        Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, offset, 0, count - 2);
+                        int cnt = count / primType;
+                        for (int i = 0; i < cnt; ++i)
+                        {
+                            Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, offset + i * primType, 0, count - 2);
+                        }
                         break;
 
                 }
             }
-
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Render(Buffer drawList, int primType, Effect effect, int offset, int count)
         {
-            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            var passes = effect.CurrentTechnique.Passes;
+            for(int p = 0; p< passes.Count; ++p)
             {
-                pass.Apply();
+                passes[p].Apply();
                 switch ((PrimType)primType)
                 {
                     case PrimType.Line:

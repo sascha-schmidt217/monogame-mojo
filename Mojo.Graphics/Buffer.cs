@@ -150,6 +150,14 @@ namespace Mojo.Graphics
             }
         }
 
+        public unsafe MojoVertex* GetVerteyPtr(int index)
+        {
+            fixed (MojoVertex* vptr = &_vertices[index])
+            {
+                return vptr;
+            }
+        }
+
         public bool VertexBufferEnabled { get; set; }
 
         public VertexBuffer VertexBuffer

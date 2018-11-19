@@ -118,26 +118,26 @@ namespace Mojo.Graphics
         public Image(string filename, float xHandle = 0.0f, float yHandle = 0.0f)
         {
             var tex = Global.Content.Load<Texture2D>(filename);
-            Init(tex, new Rectangle(0, 0, tex.Width, tex.Height), new Vector2(xHandle, yHandle));
+            Init(tex, new Rectangle(0, 0, tex.Width, tex.Height), new Vector2(xHandle , yHandle ));
             UpdateCoords();
         }
 
         public Image(Image img, int x, int y, int w, int h, float xHandle = 0.0f, float yHandle = 0.0f)
         {
-            Init(img._texture, new Rectangle(x + img._rect.X, y + img._rect.Y, w, h), new Vector2(xHandle, yHandle));
+            Init(img._texture, new Rectangle(x + img._rect.X, y + img._rect.Y, w, h), new Vector2(xHandle , yHandle ));
             UpdateCoords();
         }
 
         public Image(int w, int h, float xHandle = 0.0f, float yHandle = 0.0f)
         {
-            Init(new Texture2D(Global.Game.GraphicsDevice, w, h), new Rectangle(0, 0, w, h), new Vector2(xHandle, yHandle));
+            Init(new Texture2D(Global.Game.GraphicsDevice, w, h), new Rectangle(0, 0, w, h), new Vector2(xHandle , yHandle ));
             UpdateCoords();
         }
 
         public Image(int w, int h, RenderTargetUsage usage, float xHandle = 0.0f, float yHandle = 0.0f)
         {
             RenderTarget = new RenderTarget2D(Global.Game.GraphicsDevice, w, h, false, SurfaceFormat.Color, DepthFormat.None, 0, usage);
-            Init(RenderTarget, new Rectangle(0, 0, w, h), new Vector2(xHandle, yHandle));
+            Init(RenderTarget, new Rectangle(0, 0, w, h), new Vector2(xHandle, yHandle ));
             UpdateCoords();
         }
 

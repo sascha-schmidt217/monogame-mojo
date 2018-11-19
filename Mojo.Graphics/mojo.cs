@@ -18,7 +18,7 @@ namespace Mojo.Graphics
         void Resize(int width, int height);
         void Render();
         void Reset();
-        void AddShadowCaster(Canvas c, Vector2[] vertices, float tx, float ty);
+        void AddShadowCaster(Canvas c, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated);
         void AddPointLight(Canvas c, float x, float y, float range, float intensity, float size);
         void AddSpotLight(Canvas c, float inner, float outer, float range, float intensity, float size);
     }
@@ -42,18 +42,14 @@ namespace Mojo.Graphics
 
         public static void Initialize(Game game)
         {
-
             Game = game;
             Content = game.Content;
 
-
-            //...
             RasterizerStateScissor = new RasterizerState();
             RasterizerStateScissor.ScissorTestEnable = true;
             RasterizerStateScissor.SlopeScaleDepthBias = 100.0f;
             RasterizerStateScissor.CullMode = CullMode.None;
-            ////////
-            // TODO: initialize with max size
+
             QuadIndices = new Int16[MAX_QUADS * 6];
             for (int i = 0; i < MAX_QUADS; ++i)
             {
@@ -64,10 +60,7 @@ namespace Mojo.Graphics
                 QuadIndices[i * 6 + 4] = (short)(i * 4 + 2);
                 QuadIndices[i * 6 + 5] = (short)(i * 4 + 3);
             }
-          
 
-            ////////
-            //
             FanIndices = new Int16[MAX_VERTS * 3];
             for (int i = 0; i < MAX_VERTS; ++i)
             {
@@ -75,12 +68,10 @@ namespace Mojo.Graphics
                 FanIndices[i * 3 + 1] = (short)(i + 1);
                 FanIndices[i * 3 + 2] = (short)(i + 2);
             }
-
         }
 
         public static void LoadContent()
         {
-            // TODO: initialize with max size
             _iboQuad = new DynamicIndexBuffer(Device, IndexElementSize.SixteenBits, MAX_QUADS * 6, BufferUsage.WriteOnly);
             _iboQuad.SetData(QuadIndices, 0, MAX_QUADS * 6);
             _iboFan = new DynamicIndexBuffer(Device, IndexElementSize.SixteenBits, MAX_QUADS * 3, BufferUsage.WriteOnly);
