@@ -34,30 +34,5 @@ namespace Mojo.Graphics
             Global.LoadContent();
             Canvas = new Canvas();
         }
-
-        protected override bool BeginDraw()
-        {
-            if (LightingEnabled)
-            {
-                Canvas.BeginLighting();
-            }
-            else
-            {
-                Canvas.Begin();
-            }
-            return base.BeginDraw();
-        }
-        protected override void EndDraw()
-        {
-            if (LightingEnabled)
-            {
-                Canvas.EndLighting();
-            }
-            else
-            {
-                Canvas.End();
-            }
-            base.EndDraw();
-        }
     }
 }
