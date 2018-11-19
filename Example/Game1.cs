@@ -45,6 +45,8 @@ namespace Example
             _viewRot += 0.001f;
             _lightRot += 0.02f;
 
+            Canvas.BeginLighting();
+
             // Set Ambient color used for lighting
             Canvas.TextureFilteringEnabled = true;
             Canvas.AmbientColor = new Color(32, 32, 32);
@@ -85,6 +87,7 @@ namespace Example
             }
 
             Canvas.SetMatrix(mat);
+            Canvas.EndLighting();
 
             base.Draw(gameTime);
         }
