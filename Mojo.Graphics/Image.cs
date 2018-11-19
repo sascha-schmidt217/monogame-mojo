@@ -11,21 +11,34 @@ namespace Mojo.Graphics
 {
     public class ShadowCaster
     {
-        internal Vector2[] _vertices;
+        public Vector2[] Vertices { get; set; }
 
         public ShadowCaster(float radius, int segments)
         {
-            _vertices = new Vector2[segments];
+            Vertices = new Vector2[segments];
 
             for (int i = 0; i < segments; ++i)
             {
-                _vertices[i] = 
+                Vertices[i] =
                     new Vector2(
                        (float)System.Math.Cos(i * (System.Math.PI * 2) / segments) * radius,
                        (float)System.Math.Sin(i * (System.Math.PI * 2) / segments) * radius);
             }
         }
 
+        public ShadowCaster(Rectangle rect)
+        {
+            Vertices = new Vector2[] {
+                new Vector2(rect.Left, rect.Top),
+                new Vector2(rect.Right, rect.Top),
+                new Vector2(rect.Right, rect.Bottom),
+                new Vector2(rect.Left, rect.Bottom) };
+        }
+
+        public ShadowCaster(Vector2[] vertices)
+        {
+            Vertices = vertices.ToArray();
+        }
     }
 
 

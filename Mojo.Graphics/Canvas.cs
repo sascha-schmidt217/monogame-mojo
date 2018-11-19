@@ -966,7 +966,7 @@ namespace Mojo.Graphics
 
                 if(img.ShadowCaster != null)
                 {
-                    AddShadowCaster(img.ShadowCaster._vertices, x + img.Width / 2 , y + img.Height / 2);
+                    AddShadowCaster(img.ShadowCaster.Vertices, x + img.Width / 2 , y + img.Height / 2);
                 }
             }
         }
