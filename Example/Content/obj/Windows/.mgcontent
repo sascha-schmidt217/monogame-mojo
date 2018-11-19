@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SourceFileCollection xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Profile>Reach</Profile>
+  <Platform>Windows</Platform>
+  <Config />
+  <SourceFiles>
+    <File>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/Effects/crt.fx</File>
+    <File>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/Effects/penumbra_shadow.fx</File>
+    <File>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/Effects/point_light.fx</File>
+    <File>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/Effects/spot_light.fx</File>
+    <File>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/Images/tiles.png</File>
+    <File>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/Images/logo.png</File>
+  </SourceFiles>
+</SourceFileCollection>
