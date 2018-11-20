@@ -225,38 +225,31 @@ namespace Mojo.Graphics
             }
         }
 
-        public bool CanFlush
-        {
-            get
-            {
-                return _drawBuffer.DrawOps.Count > 0;
-            }
-        }
+
 
         public void Flush(bool preserveBuffer = false)
         {
-            if (!CanFlush)
+            if (_drawBuffer.DrawOps.Count == 0)
+            {
                 return;
-
-            if (TextureFilteringEnabled)
-            {
-                Device.SamplerStates[0] = SamplerState.LinearClamp;
-            }
-            else
-            {
-                Device.SamplerStates[0] = SamplerState.PointClamp;
             }
 
-            if(_lighting)
-            { 
+            if (_lighting)
+            {
                 // diffuse
                 //
-                //Device.SetRenderTarget(_diffuseMap);
+                Device.SetRenderTarget(_diffuseMap);
                 RenderDrawOps();
 
+                // TODO
                 // normal
+                //
                 //Device.SetRenderTarget(_normalMap);
                 //RenderDrawOps();
+
+                // back to default rendertarget
+                //
+                Device.SetRenderTarget(RenderTarget);
             }
             else
             {
@@ -344,20 +337,24 @@ namespace Mojo.Graphics
         /// </summary>
         public void BeginLighting()
         {
-            if (_lighting) return;
+            System.Diagnostics.Debug.Assert(!_lighting, "Already lighting");
+
+            if (_lighting)
+            {
+                return;
+            }
+
             _lighting = true;
 
             Begin();
 
             // create gbuffer
             //
-            _diffuseMap = Global.CreateRenderImage(Width, Height, ref _diffuseMap);
+            _diffuseMap = Global.CreateRenderImage(Width, Height, ref _diffuseMap, RenderTargetUsage.PreserveContents);
             _diffuseMap.RenderTarget.Name = "Diffuse";
             _normalMap = Global.CreateRenderImage(Width, Height, ref _normalMap);
             _normalMap.RenderTarget.Name = "Normal";
 
-            // TODO!!!!
-            // Cls does not work if not initialized in lighting mode!
             RenderTarget = _diffuseMap;
         }
 
@@ -370,11 +367,7 @@ namespace Mojo.Graphics
 
             // draw everything
             //
-            Flush();
-
-            // disable lighting here: Rendertargets + Lighting does not work yet
-            //
-            _lighting = false;
+            Flush(); _lighting = false;
 
             // Update lighting
             //
@@ -411,6 +404,15 @@ namespace Mojo.Graphics
             Device.RasterizerState = RasterizerState.CullNone;
             Device.DepthStencilState = DepthStencilState.None;
             Device.BlendState = MojoBlend.BlendAlpha;
+
+            if (TextureFilteringEnabled)
+            {
+                Device.SamplerStates[0] = SamplerState.LinearClamp;
+            }
+            else
+            {
+                Device.SamplerStates[0] = SamplerState.PointClamp;
+            }
 
             ResetMatrix();
 
