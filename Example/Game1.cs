@@ -52,7 +52,7 @@ namespace Example
 
             // Set Ambient color used for lighting
             Canvas.TextureFilteringEnabled = true;
-            Canvas.AmbientColor = new Color(0,0,0);
+            Canvas.AmbientColor = new Color(32,32,32);
             Canvas.Clear(Color.Red);
 
             Canvas.Translate(Width / 2, Height / 2);
@@ -72,7 +72,6 @@ namespace Example
 
             // Draw sprites
             int k = 0;
-            //for(int h = 0; h < 10; ++h)
             for (int i = 0; i < 2; ++i)
             {
                 for (float an = 0; an < System.Math.PI * 2; an += (float)System.Math.PI * 2 / 8)

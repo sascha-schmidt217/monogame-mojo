@@ -20,6 +20,7 @@ namespace Mojo.Graphics
 
         public int ShadowCount { get; private set; } = 0;
         public MojoVertex[] ShadowBuffer => _buffer;
+        public Effect Effect => DefaultEffect;
 
         public Matrix Projection
         {
@@ -32,11 +33,11 @@ namespace Mojo.Graphics
         public void OnLoad()
         {
             DefaultEffect = new BasicEffect(Global.Device);
-            _buffer = new MojoVertex[16536];
-        }
-
-        public void OnRelease()
-        {
+            _buffer = new MojoVertex[65536];
+            for(int i = 0; i< _buffer.Length;++i)
+            {
+                _buffer[i].Color = c;
+            }
         }
 
         public void UpdateLight(Vector2 location, float size)
@@ -45,11 +46,9 @@ namespace Mojo.Graphics
             lv = location;
         }
 
-        public Effect Effect => DefaultEffect;
-
         public void AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
         {
-            if ((ShadowCount +1)* 4 >= ShadowBuffer.Length)
+            if ((ShadowCount + length) * 4 >= ShadowBuffer.Length)
             {
                 return;
             }
@@ -75,19 +74,12 @@ namespace Mojo.Graphics
                     {
                         tp[0].Position.X = tv.X;
                         tp[0].Position.Y = tv.Y;
-                        tp[0].Color = c;
-
                         tp[1].Position.X = tv2.X;
                         tp[1].Position.Y = tv2.Y;
-                        tp[1].Color = c;
-
                         tp[2].Position.X = pv2.X;
                         tp[2].Position.Y = pv2.Y;
-                        tp[2].Color = c;
-
                         tp[3].Position.X = pv.X;
                         tp[3].Position.Y = pv.Y;
-                        tp[3].Color = c;
                     }
                 }
             }

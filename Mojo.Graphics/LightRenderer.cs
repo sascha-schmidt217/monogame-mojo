@@ -23,7 +23,6 @@ namespace Mojo.Graphics
         Matrix Projection { set; }
 
         void OnLoad();
-        void OnRelease();
         void UpdateLight(Vector2 location, float size);
         void AddShadowVertices(ShadowType type, List<Vector2> vertices, int start, int length);
     }
@@ -159,8 +158,8 @@ namespace Mojo.Graphics
 
         private void DrawShadows(Vector2 lv, float size, float range)
         {
-            //
             // clear shadow map
+            // 
             Global.Device.SetRenderTarget(_shadowmap);
             Global.Device.Clear(Color.Black);
 
@@ -193,7 +192,7 @@ namespace Mojo.Graphics
                                 Global.QuadIndices, 0, _shadowRenderer.ShadowCount * 2);
 
 
-                    // Draw shadow casters, considering SgadowType
+                    // Draw shadow casters, considering ShadowType
                     //
                    
                     _defaultEffect.CurrentTechnique.Passes.First().Apply();
@@ -203,7 +202,6 @@ namespace Mojo.Graphics
                         Global.Device.BlendState =  sop.ShadowType == ShadowType.Illuminated ?
                             BlendState.Opaque : MojoBlend.BlendShadow;
 
- 
                         fixed (MojoVertex* ptr = &_shadowCasterVertices[0])
                         {
                             int len = sop.Length;

@@ -43,22 +43,13 @@ namespace Mojo.Graphics
             _pLightPosition = _shadowEffect.Parameters["LightPosition"];
             _LightRadius = _shadowEffect.Parameters["LightRadius"];
 
-            _buffer = new MojoVertex[16536];
+            _buffer = new MojoVertex[65536];
             for(int i = 0; i < _buffer.Length;i+=4)
             {
                 _buffer[i+0].Position = _shadow0;
                 _buffer[i+1].Position = _shadow1;
                 _buffer[i+3].Position = _shadow3;
                 _buffer[i+2].Position = _shadow2;
-            }
-        }
-
-        public void OnRelease()
-        {
-            if(_shadowEffect!= null)
-            {
-                _shadowEffect.Dispose();
-                _shadowEffect = null;
             }
         }
 
@@ -72,7 +63,7 @@ namespace Mojo.Graphics
 
         public void AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
         {
-            if((ShadowCount+ length) *4 >= ShadowBuffer.Length)
+            if((ShadowCount + length) *4 >= ShadowBuffer.Length)
             {
                 return;
             }
