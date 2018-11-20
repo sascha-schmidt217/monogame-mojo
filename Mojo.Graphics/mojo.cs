@@ -14,13 +14,12 @@ namespace Mojo.Graphics
     {
         Image LightMap { get; }
         Color AmbientColor { get; set; }
-        void OnLoad(Canvas canvas);
         void Resize(int width, int height);
         void Render();
         void Reset();
-        void AddShadowCaster(Canvas c, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated);
-        void AddPointLight(Canvas c, float x, float y, float range, float intensity, float size);
-        void AddSpotLight(Canvas c, float inner, float outer, float range, float intensity, float size);
+        void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated);
+        void AddPointLight(Transform2D mat, Color c, float range, float intensity, float size);
+        void AddSpotLight(Transform2D mat, Color c, float inner, float outer, float range, float intensity, float size);
     }
 
     public static class Global

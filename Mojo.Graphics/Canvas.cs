@@ -148,7 +148,6 @@ namespace Mojo.Graphics
                 if (_lightRenderer == null)
                 {
                     _lightRenderer = new LightRenderer();
-                    _lightRenderer.OnLoad(this);
                 }
                 return _lightRenderer;
             }
@@ -929,7 +928,7 @@ namespace Mojo.Graphics
         /// </summary>
         public void AddShadowCaster(Vector2[] vertices, float x, float y)
         {
-            LightRenderer.AddShadowCaster(this, vertices, x, y);
+            LightRenderer.AddShadowCaster(Matrix, vertices, x, y);
         }
 
         /// <summary>
@@ -984,7 +983,7 @@ namespace Mojo.Graphics
         {
             PushMatrix();
             Translate(x, y);
-            LightRenderer.AddPointLight(this, 0,0, range, intensity, size);
+            LightRenderer.AddPointLight(Matrix, Color, range, intensity, size);
             PopMatrix();
         }
 
@@ -998,7 +997,7 @@ namespace Mojo.Graphics
             Translate(x, y);
             Rotate(angle);
             Scale(1, 1);
-            LightRenderer.AddSpotLight(this, inner, outer, range, intensity, size);
+            LightRenderer.AddSpotLight(Matrix, Color, inner, outer, range, intensity, size);
             PopMatrix();
         }
 

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PipelineBuildEvent xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SourceFile>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/Images/logo.png</SourceFile>
-  <SourceTime>2016-10-31T19:05:26+01:00</SourceTime>
+  <SourceTime>2018-11-19T13:02:32.5195656+01:00</SourceTime>
   <DestFile>C:/Users/Sascha/Downloads/Game78/monogame-mojo/Example/Content/bin/Windows/Images/logo.xnb</DestFile>
-  <DestTime>2018-11-19T10:38:55.5111888+01:00</DestTime>
+  <DestTime>2018-11-19T13:02:38.9397814+01:00</DestTime>
   <Importer>TextureImporter</Importer>
   <ImporterTime>2017-03-01T16:05:36+01:00</ImporterTime>
   <Processor>TextureProcessor</Processor>

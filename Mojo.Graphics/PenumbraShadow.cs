@@ -18,9 +18,23 @@ namespace Mojo.Graphics
         private Vector2 _shadow3 = new Vector2(0.0f, 1.0f);
 
         private Effect _shadowEffect;
+        private MojoVertex[] _buffer;
+        private int _ShadowCount;
         private EffectParameter _pWorldViewProjection;
         private EffectParameter _pLightPosition;
         private EffectParameter _LightRadius;
+
+        public Effect Effect => _shadowEffect;
+        public int ShadowCount => _ShadowCount;
+        public MojoVertex[] ShadowBuffer => _buffer;
+
+        public Matrix Projection
+        {
+            set
+            {
+                _pWorldViewProjection.SetValue(value);
+            }
+        }
 
         public void OnLoad()
         {
@@ -28,6 +42,15 @@ namespace Mojo.Graphics
             _pWorldViewProjection = _shadowEffect.Parameters["WorldViewProjection"];
             _pLightPosition = _shadowEffect.Parameters["LightPosition"];
             _LightRadius = _shadowEffect.Parameters["LightRadius"];
+
+            _buffer = new MojoVertex[16536];
+            for(int i = 0; i < _buffer.Length;i+=4)
+            {
+                _buffer[i+0].Position = _shadow0;
+                _buffer[i+1].Position = _shadow1;
+                _buffer[i+3].Position = _shadow3;
+                _buffer[i+2].Position = _shadow2;
+            }
         }
 
         public void OnRelease()
@@ -39,46 +62,42 @@ namespace Mojo.Graphics
             }
         }
 
-        public void OnUpdateFrame(Canvas canvas)
+        public void UpdateLight(Vector2 location, float size )
         {
-            _pWorldViewProjection.SetValue(canvas.WorldViewProj);
+            _pLightPosition.SetValue(location);
+            _LightRadius.SetValue(size);
+            _ShadowCount = 0;
         }
 
-        public void OnUpdateLight(LightOp op)
-        {
-            _pLightPosition.SetValue(op.Location);
-            _LightRadius.SetValue(op.Size);
-        }
 
-        public void OnDrawShadow(Canvas canvas, ShadowType type, int offset, int count, List<Vector2> _shadowVertices)
+        public void AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
         {
+            if((ShadowCount+1)*4 >= ShadowBuffer.Length)
+            {
+                return;
+            }
+
             unsafe
             {
-                var vert0 = offset;
-                var nverts = count;
+                var vert0 = start;
+                var nverts = length;
 
                 Vector2 prevPoint = _shadowVertices[vert0 + nverts - 1];
                 for (int i = 0; i < nverts; ++i)
                 {
                     Vector2 currentPoint = _shadowVertices[vert0 + i];
 
-                    var tp = canvas.AddDrawOp((int)PrimType.Quad, 1, null, _shadowEffect, BlendMode.Subtract);
-
-                    tp[0].Position = _shadow0;
-                    tp[0].Tex0 = prevPoint;
-                    tp[0].Tex1 = currentPoint;
-
-                    tp[1].Position = _shadow1;
-                    tp[1].Tex0 = prevPoint;
-                    tp[1].Tex1 = currentPoint;
-
-                    tp[3].Position = _shadow3;
-                    tp[3].Tex0 = prevPoint;
-                    tp[3].Tex1 = currentPoint;
-
-                    tp[2].Position = _shadow2;
-                    tp[2].Tex0 = prevPoint;
-                    tp[2].Tex1 = currentPoint;
+                    fixed (MojoVertex* tp = &_buffer[_ShadowCount++ * 4])
+                    {
+                        tp[0].Tex0 = prevPoint;
+                        tp[0].Tex1 = currentPoint;
+                        tp[1].Tex0 = prevPoint;
+                        tp[1].Tex1 = currentPoint;
+                        tp[3].Tex0 = prevPoint;
+                        tp[3].Tex1 = currentPoint;
+                        tp[2].Tex0 = prevPoint;
+                        tp[2].Tex1 = currentPoint;
+                    }
 
                     prevPoint = currentPoint;
                 }
