@@ -173,7 +173,6 @@ namespace Mojo.Graphics
                 {
                     for (int i = 0; i < op.Length; ++i)
                     {
-
                         if (Vector2.DistanceSquared(vertexArray[op.Offset + i], lv) < range)
                         {
                             _shadowRenderer.AddShadowVertices(op.ShadowType, vertexArray, op.Offset, op.Length);
@@ -194,7 +193,7 @@ namespace Mojo.Graphics
                                 Global.QuadIndices, 0, _shadowRenderer.ShadowCount * 2);
 
 
-                    // Draw shadow casters
+                    // Draw shadow casters, considering SgadowType
                     //
                    
                     _defaultEffect.CurrentTechnique.Passes.First().Apply();
@@ -204,10 +203,11 @@ namespace Mojo.Graphics
                         Global.Device.BlendState =  sop.ShadowType == ShadowType.Illuminated ?
                             BlendState.Opaque : MojoBlend.BlendShadow;
 
-
+ 
                         fixed (MojoVertex* ptr = &_shadowCasterVertices[0])
                         {
-                            for (int i = 0; i < sop.Length; ++i)
+                            int len = sop.Length;
+                            for (int i = 0; i < len; ++i)
                             {
                                 var v = _shadowVertices[sop.Offset + i];
                                 ptr[i].Transform(v.X, v.Y, Color.Black);
@@ -221,6 +221,7 @@ namespace Mojo.Graphics
                 }
             }
         }
+
 
         public static Image CreateImage(int w, int h, ref Image img)
         {

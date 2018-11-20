@@ -72,6 +72,7 @@ namespace Example
 
             // Draw sprites
             int k = 0;
+            //for(int h = 0; h < 10; ++h)
             for (int i = 0; i < 2; ++i)
             {
                 for (float an = 0; an < System.Math.PI * 2; an += (float)System.Math.PI * 2 / 8)

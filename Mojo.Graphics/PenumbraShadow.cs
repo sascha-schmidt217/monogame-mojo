@@ -72,7 +72,7 @@ namespace Mojo.Graphics
 
         public void AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
         {
-            if((ShadowCount+1)*4 >= ShadowBuffer.Length)
+            if((ShadowCount+ length) *4 >= ShadowBuffer.Length)
             {
                 return;
             }
