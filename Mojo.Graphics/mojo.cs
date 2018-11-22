@@ -135,7 +135,7 @@ namespace Mojo.Graphics
             return img;
         }
 
-        public static Image CreateRenderImage(int w, int h, ref Image img, RenderTargetUsage usage = RenderTargetUsage.DiscardContents)
+        public static Image CreateRenderImage(int w, int h, ref Image img, RenderTargetUsage usage = RenderTargetUsage.DiscardContents, SurfaceFormat fmt = SurfaceFormat.Color)
         {
             if (img != null && (img.Width != w || img.Height != h))
             {
@@ -144,7 +144,7 @@ namespace Mojo.Graphics
             }
             if (img == null)
             {
-                img = new Image(w, h, usage);
+                img = new Image(w, h,  usage, fmt);
             }
             return img;
         }
@@ -329,6 +329,8 @@ namespace Mojo.Graphics
             AlphaDestinationBlend = Blend.One
         };
 
+
+
         public static BlendState BlendAdd = new BlendState
         {
             //ColorSourceBlend = Blend.SourceAlpha,
@@ -351,6 +353,15 @@ namespace Mojo.Graphics
         {
             ColorSourceBlend = Blend.SourceAlpha,
             ColorDestinationBlend = Blend.InverseSourceAlpha,
+            ColorBlendFunction = BlendFunction.Add,
+            AlphaSourceBlend = Blend.One,
+            AlphaDestinationBlend = Blend.One
+        };
+
+        public static BlendState BlendInverseAlpha = new BlendState
+        {
+            ColorSourceBlend = Blend.SourceAlpha,
+            ColorDestinationBlend = Blend.SourceAlpha,
             ColorBlendFunction = BlendFunction.Add,
             AlphaSourceBlend = Blend.One,
             AlphaDestinationBlend = Blend.One

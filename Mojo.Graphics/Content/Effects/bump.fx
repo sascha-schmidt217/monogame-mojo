@@ -58,16 +58,16 @@ PixelShaderOutput MainPS(VertexShaderOutput input) : COLOR
 {
 	float4 diffuse = tex2D(DiffuseSampler, input.TexCoord0);
 	float3 normal = tex2D(NormalSampler, input.TexCoord0).xyz;
-	float3 specular = tex2D(SpecularSampler, input.TexCoord0).rgb;
+	float4 specular = tex2D(SpecularSampler, input.TexCoord0);
 
-	normal.xy = mul(input.v_TanMatrix, normal.xy *2.0f - 1.0f);
+	normal.xy = mul(input.v_TanMatrix, normal.xy * 2.0f - 1.0f);
 	normal.xy = normal.xy * 0.5f + 0.5f;
 
 
 	PixelShaderOutput output = (PixelShaderOutput)0;
 	output.Color0 = diffuse * input.Color;
 	output.Color1 = float4(normal.rgb * diffuse.a, diffuse.a);
-	output.Color2 = float4(specular.rgb * diffuse.a, diffuse.a);
+	output.Color2.a = specular.r*diffuse.a;// Alpha8
 
 	return output;
 }

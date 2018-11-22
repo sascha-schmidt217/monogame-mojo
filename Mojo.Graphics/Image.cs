@@ -61,7 +61,7 @@ namespace Mojo.Graphics
         public int Height => _rect.Height;
         public Vector2 Handle { get { return _handle; } set { _handle = value; } }
         public ShadowCaster ShadowCaster { get; set; }
-        public float SpecularFactor { get; set; } = 0.0f;
+        public float Specularity { get; set; } = 0.0f;
 
         public static implicit operator Texture2D(Image img)
         {
@@ -160,6 +160,13 @@ namespace Mojo.Graphics
         {
             RenderTarget = new RenderTarget2D(Global.Game.GraphicsDevice, w, h, false, SurfaceFormat.Color, DepthFormat.None, 0, usage);
             Init(RenderTarget, new Rectangle(0, 0, w, h), new Vector2(xHandle, yHandle ));
+            UpdateCoords();
+        }
+
+        public Image(int w, int h, RenderTargetUsage usage, SurfaceFormat fmt = SurfaceFormat.Color, float xHandle = 0.0f, float yHandle = 0.0f)
+        {
+            RenderTarget = new RenderTarget2D(Global.Game.GraphicsDevice, w, h, false, fmt, DepthFormat.None, 0, usage);
+            Init(RenderTarget, new Rectangle(0, 0, w, h), new Vector2(xHandle, yHandle));
             UpdateCoords();
         }
 

@@ -26,11 +26,12 @@ namespace Example
             base.LoadContent();
             base.LightingEnabled = true;
 
-            _floor = new Image("Images/tiles", "Images/tiles_n", "Images/tiles_s");
+            _floor = new Image("Images/tiles", "Images/tiles_n" , "Images/tiles_s");
+            _floor.Specularity = 1;
             _logo = new Image("Images/logo", "Images/logo_n", 24,24);
-            _logo.SpecularFactor = 1;
+            _logo.Specularity = 1;
             _logo2 = new Image("Images/logo2", "Images/logo2_n", 24,24);
-            _logo2.SpecularFactor = 1;
+            _logo2.Specularity = 1;
             _logo.ShadowCaster = new ShadowCaster(_logo.Width / 2, 24);
             _logo2.ShadowCaster = new ShadowCaster(new Rectangle(-_logo2.Width/2, -_logo2.Height/2, _logo2.Width, _logo2.Height));
         }

@@ -29,6 +29,7 @@ namespace Mojo.Graphics
         None,
         Opaque,
         Alpha,
+        InverseAlpha,
         Additive,
         Subtract,
         Multiply,
@@ -51,33 +52,42 @@ namespace Mojo.Graphics
 
     public class Canvas : IDisposable
     {
+        // internal state
+        private bool initialized = false;
         private Stack<Transform2D> _matrixStack = new Stack<Transform2D>();
         private Transform2D _transform = new Transform2D();
         private bool _lighting = false;
-        private float _alpha = 1.0f;
-        private BlendMode _blendMode = BlendMode.None;
         private Rectangle _scissorRect;
+        private Buffer _drawBuffer { get; set; }
+        private Buffer _defaultBuffer;
+        private BlendMode _blendMode = BlendMode.None;
+        private float _alpha = 1.0f;
         private Color _color;
         private Color _internalColor = Color.White;
+        private Image _originalRendertarget = null;
+        private RenderTarget2D _currentRendertarget = null;
+        private DrawOp _drawOp = new DrawOp();
+        
+        // light renderer
+        private ILightRenderer _lightRenderer;
+
+        // G-Buffer
+        private RenderTargetBinding[] _gBuffer;
         private Image _diffuseMap;
         private Image _normalMap;
         private Image _specularMap;
 
-        private DrawOp _drawOp = new DrawOp();
-        private Quad _rect = new Quad();
+        // shaders
         private Effect _currentEffect;
         private Effect _bumpEffect;
         private Effect _lightingEffect;
-        private Image _originalRendertarget = null;
-        private RenderTarget2D _currentRendertarget = null;
-        private Buffer _drawBuffer { get; set; }
-        private Buffer _defaultBuffer;
-        private ILightRenderer _lightRenderer;
-        private SpriteFont _spriteFont;
-        private bool initialized = false;
-        private Image _fontImage;
-        private static Color _translucence = new Color(0, 0, 0, 0);
 
+        // image of the currectly active font
+        private Image _fontImage;
+        private SpriteFont _spriteFont;
+
+        ///////////////////////////////////////////////
+        ///
         public GraphicsDevice Device { get; private set; }
         public BasicEffect DefaultEffect { get; private set; }
         public int Width { get; private set; }
@@ -229,7 +239,6 @@ namespace Mojo.Graphics
             }
         }
 
-        private RenderTargetBinding[] _gBuffer;
 
         public void Flush(bool preserveBuffer = false)
         {
@@ -359,12 +368,8 @@ namespace Mojo.Graphics
             var refNormal = _normalMap;
 
             _diffuseMap = Global.CreateRenderImage(Width, Height, ref _diffuseMap, RenderTargetUsage.PreserveContents);
-            _diffuseMap.RenderTarget.Name = "Diffuse";
             _normalMap = Global.CreateRenderImage(Width, Height, ref _normalMap);
-            _normalMap.RenderTarget.Name = "Normal";
-            _specularMap = Global.CreateRenderImage(Width, Height, ref _specularMap);
-            _specularMap.RenderTarget.Name = "Specular";
-
+            _specularMap = Global.CreateRenderImage(Width, Height, ref _specularMap, RenderTargetUsage.DiscardContents, SurfaceFormat.Alpha8);
 
             if (refDiffuse != _diffuseMap || refNormal != _normalMap)
             {
@@ -382,6 +387,8 @@ namespace Mojo.Graphics
             Device.Clear(Color.Black);
             Device.SetRenderTarget(_normalMap);
             Device.Clear(new Color(0.5f, 0.5f, 0));
+            Device.SetRenderTarget(_specularMap);
+            Device.Clear(Color.TransparentBlack);// Clear Alpha, because SurafceFprmat is Alpha8
 
             RenderTarget = _diffuseMap;
         }
@@ -432,11 +439,19 @@ namespace Mojo.Graphics
             {
                 var filter = TextureFilteringEnabled;
                 TextureFilteringEnabled = true;
+
                 BlendMode = BlendMode.Opaque;
                 DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
                 DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
-                DrawImage(_specularMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
                 DrawImage(LightRenderer.LightMap, _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
+
+
+                BlendMode = BlendMode.Opaque;
+                DrawRect(_normalMap.Width * 0.4f, 0, _normalMap.Width * 0.2f, _normalMap.Height * 0.2f);
+                Color = Color.White;
+                BlendMode = BlendMode.InverseAlpha;
+                DrawImage(_specularMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
+                
 
                 Flush();
                 TextureFilteringEnabled = filter;
@@ -765,11 +780,11 @@ namespace Mojo.Graphics
                     ptr[0].Transform(x0, y0, _transform, _color);
                     ptr[1].Transform(x1, y1, _transform, _color);
 
-                    ptr[2].Transform(x1 - dx, y1 - dy, _transform, _translucence);
-                    ptr[3].Transform(x0 - dx, y0 - dy, _transform, _translucence);
+                    ptr[2].Transform(x1 - dx, y1 - dy, _transform, Color.TransparentBlack);
+                    ptr[3].Transform(x0 - dx, y0 - dy, _transform, Color.TransparentBlack);
 
-                    ptr[4].Transform(x0 + dx, y0 + dy, _transform, _translucence);
-                    ptr[5].Transform(x1 + dx, y1 + dy, _transform, _translucence);
+                    ptr[4].Transform(x0 + dx, y0 + dy, _transform, Color.TransparentBlack);
+                    ptr[5].Transform(x1 + dx, y1 + dy, _transform, Color.TransparentBlack);
 
                     ptr[6].Transform(x1, y1, _transform, _color);
                     ptr[7].Transform(x0, y0, _transform, _color);
@@ -813,11 +828,11 @@ namespace Mojo.Graphics
                     ptr[0].Transform(x0, y0, _transform, OutlineColor);
                     ptr[1].Transform(x1, y1, _transform, OutlineColor);
 
-                    ptr[2].Transform(x1 - dx, y1 - dy, _transform, _translucence);
-                    ptr[3].Transform(x0 - dx, y0 - dy, _transform, _translucence);
+                    ptr[2].Transform(x1 - dx, y1 - dy, _transform, Color.TransparentBlack);
+                    ptr[3].Transform(x0 - dx, y0 - dy, _transform, Color.TransparentBlack);
 
-                    ptr[4].Transform(x0 + dx, y0 + dy, _transform, _translucence);
-                    ptr[5].Transform(x1 + dx, y1 + dy, _transform, _translucence);
+                    ptr[4].Transform(x0 + dx, y0 + dy, _transform, Color.TransparentBlack);
+                    ptr[5].Transform(x1 + dx, y1 + dy, _transform, Color.TransparentBlack);
 
                     ptr[6].Transform(x1, y1, _transform, OutlineColor);
                     ptr[7].Transform(x0, y0, _transform, OutlineColor);
@@ -1104,6 +1119,7 @@ namespace Mojo.Graphics
             _pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
             _pSpecularTexture = _bumpEffect.Parameters["SpecularSampler"];
 
+    
 
             ResetMatrix();
             RenderTarget = _originalRendertarget;
@@ -1228,7 +1244,7 @@ namespace Mojo.Graphics
                     if(op.img._specular == null)
                     {
                         _pSpecularTexture.SetValue(op.img._specular);
-                        var specularFactor = Math.Max(0, Math.Min(255, (int)(op.img.SpecularFactor * 255)));
+                        var specularFactor = Math.Max(0, Math.Min(255, (int)(op.img.Specularity * 255)));
                         _pSpecularTexture.SetValue(Global.DefaultSpecular[specularFactor]);
                     }
                     else
@@ -1264,6 +1280,9 @@ namespace Mojo.Graphics
                     break;
                 case BlendMode.Alpha:
                     Device.BlendState = MojoBlend.BlendAlpha;
+                    break;
+                case BlendMode.InverseAlpha:
+                    Device.BlendState = MojoBlend.BlendInverseAlpha;
                     break;
                 case BlendMode.Multiply:
                     Device.BlendState = MojoBlend.BlendMultiply;

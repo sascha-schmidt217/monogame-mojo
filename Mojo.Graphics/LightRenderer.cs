@@ -246,7 +246,7 @@ namespace Mojo.Graphics
             }
             if (img == null)
             {
-                img = new Image(w, h, RenderTargetUsage.PreserveContents);
+                img = new Image(w, h, RenderTargetUsage.PreserveContents, SurfaceFormat.Color);
             }
             return img;
         }
