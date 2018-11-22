@@ -227,7 +227,7 @@ namespace Mojo.Graphics
             }
         }
 
-
+        private RenderTargetBinding[] _gBuffer;
 
         public void Flush(bool preserveBuffer = false)
         {
@@ -240,11 +240,7 @@ namespace Mojo.Graphics
             {
                 // diffuse + normal
                 //
-                // TODO: preInitialize RendertargetBindings!
-                var binding0 = new RenderTargetBinding(_diffuseMap);
-                var binding1 = new RenderTargetBinding(_normalMap);
-                Device.SetRenderTargets(binding0, binding1);
-                //Device.SetRenderTarget(_diffuseMap);
+                Device.SetRenderTargets(_gBuffer);
                 RenderDrawOps();
 
                 // TODO
@@ -356,14 +352,28 @@ namespace Mojo.Graphics
 
             // create gbuffer
             //
+
+            var refDiffuse = _diffuseMap;
+            var refNormal = _normalMap;
+
             _diffuseMap = Global.CreateRenderImage(Width, Height, ref _diffuseMap, RenderTargetUsage.PreserveContents);
             _diffuseMap.RenderTarget.Name = "Diffuse";
             _normalMap = Global.CreateRenderImage(Width, Height, ref _normalMap);
             _normalMap.RenderTarget.Name = "Normal";
+    
+            if (refDiffuse != _diffuseMap || refNormal != _normalMap)
+            {
+                _gBuffer = new RenderTargetBinding[]
+                {
+                        new RenderTargetBinding(_diffuseMap),
+                        new RenderTargetBinding(_normalMap)
+                };
+            };
 
+            // clear gbuffer
+            //
             Device.SetRenderTarget(_diffuseMap);
             Device.Clear(Color.Black);
-
             Device.SetRenderTarget(_normalMap);
             Device.Clear(new Color(0.5f, 0.5f, 0));
 
@@ -419,7 +429,6 @@ namespace Mojo.Graphics
                 DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
                 DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
                 DrawImage(LightRenderer.LightMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
-                DrawImage(_normalMap, 0,0);
                 Flush();
                 TextureFilteringEnabled = filter;
             }
@@ -427,7 +436,7 @@ namespace Mojo.Graphics
             PopMatrix();
         }
 
-        bool ShowGBuffer { get; set; } = false;
+        public bool ShowGBuffer { get; set; } = false;
 
         public void Begin()
         {
@@ -887,6 +896,7 @@ namespace Mojo.Graphics
                 float scale_x = 1.0f / Font.Texture.Width;
                 float scale_y = 1.0f / Font.Texture.Height;
 
+
                 var firstGlyphOfLine = true;
                 var glyphsArray = _spriteFont.Glyphs;
 
@@ -1020,11 +1030,11 @@ namespace Mojo.Graphics
         /// <summary>
         /// Adds a point light to the canvas.
         /// </summary>
-        public void AddPointLight(float x, float y, float range, float intensity = 4.0f, float size = 4.0f)
+        public void AddPointLight(float x, float y, float range, float intensity = 4.0f, float size = 4.0f, float depth = 96.0f)
         {
             PushMatrix();
             Translate(x, y);
-            LightRenderer.AddPointLight(Matrix, Color, range, intensity, size);
+            LightRenderer.AddPointLight(Matrix, Color, range, intensity, size, depth);
             PopMatrix();
         }
 
@@ -1032,13 +1042,13 @@ namespace Mojo.Graphics
         /// Adds a spot light to the canvas.
         /// </summary>
         public void AddSpotLight(float x, float y, float angle, float range,
-            float inner = 25, float outer = 45, float intensity = 4.0f, float size = 4.0f)
+            float inner = 25, float outer = 45, float intensity = 4.0f, float size = 4.0f, float depth = 96.0f)
         {
             PushMatrix();
             Translate(x, y);
             Rotate(angle);
             Scale(1, 1);
-            LightRenderer.AddSpotLight(Matrix, Color, inner, outer, range, intensity, size);
+            LightRenderer.AddSpotLight(Matrix, Color, inner, outer, range, intensity, size, depth);
             PopMatrix();
         }
 

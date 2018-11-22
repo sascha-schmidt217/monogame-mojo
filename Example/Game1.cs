@@ -33,10 +33,29 @@ namespace Example
             _logo2.ShadowCaster = new ShadowCaster(new Rectangle(-_logo2.Width/2, -_logo2.Height/2, _logo2.Width, _logo2.Height));
         }
 
+        private float _lightDepth = 96.0f;
+        private bool _spaceHit = true;
+
         protected override void Update(GameTime gameTime)
         {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+            var state = Keyboard.GetState();
+
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || state.IsKeyDown(Keys.Escape))
                 Exit();
+
+            if (state.IsKeyDown(Keys.Left))
+                _lightDepth = MathHelper.Max(0, _lightDepth - 0.2f);
+
+            if (state.IsKeyDown(Keys.Right))
+                _lightDepth = MathHelper.Min(256, _lightDepth + 0.2f);
+
+            if (_spaceHit && state.IsKeyDown(Keys.Space))
+            {
+                Canvas.ShowGBuffer = !Canvas.ShowGBuffer;
+                _spaceHit = false;
+            }
+            else if(!state.IsKeyDown(Keys.Space))
+                _spaceHit = true;
 
             base.Update(gameTime);
         }
@@ -52,7 +71,7 @@ namespace Example
 
             // Set Ambient color used for lighting
             Canvas.TextureFilteringEnabled = true;
-            Canvas.AmbientColor = new Color(32,32,32);
+            Canvas.AmbientColor = new Color(64,64,64);
             Canvas.Clear(Color.Red);
 
             // Draw background
@@ -75,7 +94,7 @@ namespace Example
             }
 
             // add light
-            Canvas.AddPointLight( mouse.X, mouse.Y, 512, 1,12);
+            Canvas.AddPointLight( mouse.X, mouse.Y, 512, 1,12, _lightDepth);
           
             Canvas.EndLighting();
             base.Draw(gameTime);

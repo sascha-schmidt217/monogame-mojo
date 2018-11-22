@@ -18,6 +18,7 @@ float2 lightPos;
 float intensity;
 float radius;
 float2 inv_tex_size;
+float m_LightDepth;
 
 struct VertexShaderInput
 {
@@ -40,7 +41,7 @@ VertexShaderOutput MainVS(VertexShaderInput input)
 
 	output.Position = mul(input.Position, WorldViewProj);
 	output.LightColor = input.Color;
-	output.TexCoord0 = input.Position.xy;
+	output.TexCoord0 = input.Position.xy  * inv_tex_size;
 
 	float2 p_light = lightPos - input.Position.xy;
 	p_light.y *= -1;
@@ -53,7 +54,6 @@ VertexShaderOutput MainVS(VertexShaderInput input)
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
 	const float specular_factor = 1.0f;
-	const float m_LightDepth = 96.0f;
 
 	//////
 
@@ -67,21 +67,21 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 
 	// normal
 	//
-	float3 normal = tex2D(normalMapSampler, input.TexCoord0 * inv_tex_size).xyz;
-	float gloss = normal.z/2;
-	normal.xy = normal.xy * 2.0 - 1.0;
+	float3 normal = tex2D(normalMapSampler, input.TexCoord0).xyz;
+	float gloss = normal.z * 0.5f;
+	normal.xy = mad(normal.xy, 2.0f, -1.0f);
 	normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
 
 	// normal lighting
 	float ndotl = max( dot(normal, light_dir_norm), 0.0);
 
 	// specular
-	float3 hvec = normalize(light_dir_norm + float3(0.0, 0.0, 1.0));
-	float ndoth = max(dot(normal, hvec), 0.0);
-	float specular = specular_factor * pow(ndoth, 128.0) * gloss;
+	float3 hvec = normalize(light_dir_norm + float3(0.0f, 0.0f, 1.0f));
+	float ndoth = max(dot(normal, hvec), 0.0f);
+	float specular = specular_factor * pow(ndoth, 128.0f) * gloss;
 
 	// shadow
-	float shadow = tex2D(shadowMapSampler, input.TexCoord0 * inv_tex_size).a;
+	float shadow = tex2D(shadowMapSampler, input.TexCoord0).a;
 
 	return float4(input.LightColor.rgb * ndotl * alpha * shadow , specular * shadow);
 }

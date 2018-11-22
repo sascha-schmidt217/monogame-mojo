@@ -22,6 +22,7 @@ float radius;
 float inner;
 float outer;
 float2 inv_tex_size;
+float m_LightDepth;
 
 struct VertexShaderInput
 {
@@ -57,7 +58,6 @@ VertexShaderOutput MainVS(VertexShaderInput input)
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
 	const float specular_factor = 1.0f;
-	const float m_LightDepth = 96.0f;
 
 	// cutoff angle factor
 	float2 dir = input.light_dir;

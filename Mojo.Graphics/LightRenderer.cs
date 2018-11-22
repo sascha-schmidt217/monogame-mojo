@@ -43,6 +43,7 @@ namespace Mojo.Graphics
         public float Range;
         public float Intensity;
         public float Size;
+        public float Depth;
     }
 
     public class SpotLightOp : LightOp
@@ -140,7 +141,7 @@ namespace Mojo.Graphics
         }
 
        
-        public void AddPointLight(Transform2D mat, Color c, float range, float intensity, float size)
+        public void AddPointLight(Transform2D mat, Color c, float range, float intensity, float size, float depth )
         {
             _pointLights.Add(new PointLightOp()
             {
@@ -149,11 +150,12 @@ namespace Mojo.Graphics
                 Transform = mat,
                 Range = range,
                 Intensity = intensity,
-                Size = size
+                Size = size,
+                Depth = depth
             });
         }
 
-        public void AddSpotLight(Transform2D mat, Color c, float inner, float outer, float range, float intensity, float size)
+        public void AddSpotLight(Transform2D mat, Color c, float inner, float outer, float range, float intensity, float size, float depth )
         {
             _spotLights.Add(new SpotLightOp()
             {
@@ -165,7 +167,8 @@ namespace Mojo.Graphics
                 Inner = inner * DEG_TO_RAD,
                 Outer = outer * DEG_TO_RAD,
                 Dir = new Vector2(mat._ix, mat._iy),
-                Size = size
+                Size = size,
+                Depth = depth
             });
         }
 
@@ -212,7 +215,7 @@ namespace Mojo.Graphics
 
                     foreach (var sop in _shadowOps)
                     {
-                        Global.Device.BlendState =  sop.ShadowType == ShadowType.Illuminated ?
+                        Global.Device.BlendState = sop.ShadowType == ShadowType.Illuminated ?
                             BlendState.Opaque : MojoBlend.BlendShadow;
 
                         fixed (MojoVertex* ptr = &_shadowCasterVertices[0])
@@ -313,6 +316,7 @@ namespace Mojo.Graphics
             _pointLightEffect.Intensity = op.Intensity;
             _pointLightEffect.Position = new Vector2(op.Location.X, op.Location.Y);
             _pointLightEffect.CurrentTechnique.Passes.First().Apply();
+            _pointLightEffect.Depth = op.Depth;
 
             unsafe
             {
@@ -343,6 +347,7 @@ namespace Mojo.Graphics
             _spotLightEffect.Outer = op.Outer;
             _spotLightEffect.LightDir = op.Dir;
             _spotLightEffect.CurrentTechnique.Passes.First().Apply();
+            _spotLightEffect.Depth = op.Depth;
 
             var transform = op.Transform;
             transform.Translate(0, -op.Range);

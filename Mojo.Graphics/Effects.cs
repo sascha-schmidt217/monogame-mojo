@@ -11,6 +11,7 @@ namespace Mojo.Graphics
     class LightEffect : Effect
     {
         private EffectParameter _pRange;
+        private EffectParameter _pDepth;
         private EffectParameter _pIntensity;
         private EffectParameter _pPosition;
         private EffectParameter _pWorldViewProj;
@@ -20,6 +21,7 @@ namespace Mojo.Graphics
 
         public LightEffect(Effect cloneSource) : base(cloneSource)
         {
+            _pDepth = Parameters["m_LightDepth"];
             _pRange = Parameters["radius"];
             _pIntensity = Parameters["intensity"];
             _pPosition = Parameters["lightPos"];
@@ -102,6 +104,19 @@ namespace Mojo.Graphics
             get
             {
                 return _pNormalMap.GetValueTexture2D();
+            }
+        }
+
+        public float Depth
+        {
+            get
+            {
+                return _pDepth.GetValueSingle() ;
+            }
+            set
+            {
+                if (_pDepth != null)
+                    _pDepth.SetValue(value);
             }
         }
     }

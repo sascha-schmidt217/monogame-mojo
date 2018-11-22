@@ -18,8 +18,8 @@ namespace Mojo.Graphics
         void Render(RenderTarget2D normapMap);
         void Reset();
         void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated);
-        void AddPointLight(Transform2D mat, Color c, float range, float intensity, float size);
-        void AddSpotLight(Transform2D mat, Color c, float inner, float outer, float range, float intensity, float size);
+        void AddPointLight(Transform2D mat, Color c, float range, float intensity, float size, float depth = 96.0f);
+        void AddSpotLight(Transform2D mat, Color c, float inner, float outer, float range, float intensity, float size, float depth = 96.0f);
     }
 
     public static class Global
