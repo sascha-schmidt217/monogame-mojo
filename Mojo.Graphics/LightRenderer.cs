@@ -225,7 +225,7 @@ namespace Mojo.Graphics
                             }
                         }
 
-                        Global.Device.DrawUserIndexedPrimitives<MojoVertex>(PrimitiveType.TriangleList,
+                       Global.Device.DrawUserIndexedPrimitives<MojoVertex>(PrimitiveType.TriangleList,
                             _shadowCasterVertices, 0, sop.Length, Global.FanIndices, 0, sop.Length - 2);
                     }
 

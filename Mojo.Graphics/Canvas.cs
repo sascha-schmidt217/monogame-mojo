@@ -397,6 +397,7 @@ namespace Mojo.Graphics
             Color = Color.White;
             Effect = _lightingEffect;
             BlendMode = BlendMode.Opaque;
+            Device.SamplerStates[0] = SamplerState.LinearClamp;
             Alpha = 1;
 
             _lightingEffect.Parameters["WorldViewProjection"].SetValue(WorldViewProj);
@@ -418,6 +419,7 @@ namespace Mojo.Graphics
                 DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
                 DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
                 DrawImage(LightRenderer.LightMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
+                DrawImage(_normalMap, 0,0);
                 Flush();
                 TextureFilteringEnabled = filter;
             }
