@@ -15,6 +15,9 @@ sampler DiffuseSampler : register(s0);
 texture LightmapTexture : register(t1);
 sampler LightmapSampler : register(s1);
 
+texture SpecularMap: register(t2);
+sampler SpecularMapSampler: register(s2);
+
 struct VertexShaderInput
 {
 	float4 Position : POSITION0;
@@ -41,8 +44,9 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 {
 	float4 diffuse = tex2D(DiffuseSampler, input.TexCoord0);
 	float4 lighting = tex2D(LightmapSampler, input.TexCoord0);
+	float4 specular = tex2D(SpecularMapSampler, input.TexCoord0);
 
-	float4 color = float4(diffuse.rgb * lighting.rgb + lighting.a, 1.0f);
+	float4 color = float4(diffuse.rgb * lighting.rgb + lighting.a * specular.x, 1.0f);
 	return color;
 }
 

@@ -13,6 +13,9 @@ sampler shadowMapSampler: register(s0);
 texture normalMap: register(t1);
 sampler normalMapSampler: register(s1);
 
+texture spacularMap: register(t2);
+sampler specularMapSampler: register(s2);
+
 matrix WorldViewProj;
 float2 lightPos;
 float intensity;
@@ -68,7 +71,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	// normal
 	//
 	float3 normal = tex2D(normalMapSampler, input.TexCoord0).xyz;
-	float gloss = normal.z * 0.5f;
+	float gloss = normal.z;
 	normal.xy = mad(normal.xy, 2.0f, -1.0f);
 	normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
 
@@ -78,12 +81,13 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	// specular
 	float3 hvec = normalize(light_dir_norm + float3(0.0f, 0.0f, 1.0f));
 	float ndoth = max(dot(normal, hvec), 0.0f);
-	float specular = specular_factor * pow(ndoth, 128.0f) * gloss;
+	float specular = pow(ndoth, 128.0f) * gloss;
 
 	// shadow
 	float shadow = tex2D(shadowMapSampler, input.TexCoord0).a;
 
-	return float4(input.LightColor.rgb * ndotl * alpha * shadow , specular * shadow);
+	float factor = alpha * shadow;
+	return float4(input.LightColor.rgb * ndotl * factor, specular * shadow  * factor);
 }
 
 technique BasicColorDrawing{

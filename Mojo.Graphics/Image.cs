@@ -47,6 +47,7 @@ namespace Mojo.Graphics
         private bool _external = false;
 
         internal Texture2D _normal;
+        internal Texture2D _specular;
         internal Texture2D _texture;
         internal Vector2 _handle;
         internal Rectangle _rect;
@@ -60,6 +61,7 @@ namespace Mojo.Graphics
         public int Height => _rect.Height;
         public Vector2 Handle { get { return _handle; } set { _handle = value; } }
         public ShadowCaster ShadowCaster { get; set; }
+        public float SpecularFactor { get; set; } = 0.0f;
 
         public static implicit operator Texture2D(Image img)
         {
@@ -116,13 +118,24 @@ namespace Mojo.Graphics
             UpdateCoords();
         }
 
-        public Image(string filename_diffuse,string filename_normal, float xHandle = 0.0f, float yHandle = 0.0f)
+        public Image(string filename_diffuse,string filename_normal, string filename_spec, float xHandle = 0.0f, float yHandle = 0.0f)
+        {
+            var tex = Global.Content.Load<Texture2D>(filename_diffuse);
+            _normal = Global.Content.Load<Texture2D>(filename_normal);
+            _specular = Global.Content.Load<Texture2D>(filename_spec);
+
+            Init(tex, new Rectangle(0, 0, tex.Width, tex.Height), new Vector2(xHandle, yHandle));
+            UpdateCoords();
+        }
+
+        public Image(string filename_diffuse, string filename_normal, float xHandle = 0.0f, float yHandle = 0.0f)
         {
             var tex = Global.Content.Load<Texture2D>(filename_diffuse);
             _normal = Global.Content.Load<Texture2D>(filename_normal);
             Init(tex, new Rectangle(0, 0, tex.Width, tex.Height), new Vector2(xHandle, yHandle));
             UpdateCoords();
         }
+
 
         public Image(string filename, float xHandle = 0.0f, float yHandle = 0.0f)
         {

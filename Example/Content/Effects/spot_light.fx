@@ -70,7 +70,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	// normal
 	//
 	float3 normal = tex2D(normalMapSampler, input.TexCoord0 * inv_tex_size).xyz;
-	float gloss = normal.z / 2;
+	float gloss = normal.z;
 	normal.xy = normal.xy * 2.0 - 1.0;
 	normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
 
@@ -81,12 +81,14 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	// specular
 	float3 hvec = normalize(light_dir_norm + float3(0.0, 0.0, 1.0));
 	float ndoth = max(dot(normal, hvec), 0.0);
-	float specular = specular_factor * pow(ndoth, 128.0) * gloss;
+	float specular = pow(ndoth, 128.0) * gloss;
 
 	// shadow
 	float shadow = tex2D(shadowMapSampler, input.TexCoord0 * inv_tex_size).a;
+	
+	float factor = alpha * f * shadow;
 
-	return float4(input.LightColor.rgb * ndotl * alpha * f * shadow, specular * shadow * f);
+	return float4(input.LightColor.rgb * ndotl * factor, specular * factor);
 }
 
 technique BasicColorDrawing {

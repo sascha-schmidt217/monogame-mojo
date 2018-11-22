@@ -39,6 +39,7 @@ namespace Mojo.Graphics
         internal static RasterizerState RasterizerStateScissor;
 
         private static RenderTarget2D _defaultNormal;
+        private static RenderTarget2D[] _defaultSpecular;
 
         internal static RenderTarget2D DefaultNormal
         {
@@ -57,6 +58,29 @@ namespace Mojo.Graphics
                 }
 
                 return _defaultNormal;
+            }
+        }
+
+        internal static Texture2D[] DefaultSpecular
+        {
+            get
+            {
+                if (_defaultSpecular == null)
+                {
+                    var rt = Device.GetRenderTargets();
+
+                    _defaultSpecular = new RenderTarget2D[256];
+                    for(int i = 0; i < 256; ++i)
+                    {
+                        _defaultSpecular[i] = new RenderTarget2D(Device, 1, 1);
+                        Device.SetRenderTarget(_defaultSpecular[i]);
+                        Device.Clear(new Color(i,i,i));
+                    }
+
+                    Device.SetRenderTargets(rt);
+                }
+
+                return _defaultSpecular;
             }
         }
 

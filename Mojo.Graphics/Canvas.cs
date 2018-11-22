@@ -61,6 +61,8 @@ namespace Mojo.Graphics
         private Color _internalColor = Color.White;
         private Image _diffuseMap;
         private Image _normalMap;
+        private Image _specularMap;
+
         private DrawOp _drawOp = new DrawOp();
         private Quad _rect = new Quad();
         private Effect _currentEffect;
@@ -360,13 +362,17 @@ namespace Mojo.Graphics
             _diffuseMap.RenderTarget.Name = "Diffuse";
             _normalMap = Global.CreateRenderImage(Width, Height, ref _normalMap);
             _normalMap.RenderTarget.Name = "Normal";
-    
+            _specularMap = Global.CreateRenderImage(Width, Height, ref _specularMap);
+            _specularMap.RenderTarget.Name = "Specular";
+
+
             if (refDiffuse != _diffuseMap || refNormal != _normalMap)
             {
                 _gBuffer = new RenderTargetBinding[]
                 {
                         new RenderTargetBinding(_diffuseMap),
-                        new RenderTargetBinding(_normalMap)
+                        new RenderTargetBinding(_normalMap),
+                        new RenderTargetBinding(_specularMap)
                 };
             };
 
@@ -413,6 +419,7 @@ namespace Mojo.Graphics
             _lightingEffect.Parameters["WorldViewProjection"].SetValue(WorldViewProj);
             _lightingEffect.Parameters["DiffuseSampler"].SetValue(_diffuseMap);
             _lightingEffect.Parameters["LightmapSampler"].SetValue(LightRenderer.LightMap);
+            _lightingEffect.Parameters["SpecularMapSampler"].SetValue(_specularMap);
 
             DrawImage(_diffuseMap, 0, 0 );
 
@@ -428,7 +435,9 @@ namespace Mojo.Graphics
                 BlendMode = BlendMode.Opaque;
                 DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
                 DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
-                DrawImage(LightRenderer.LightMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
+                DrawImage(_specularMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
+                DrawImage(LightRenderer.LightMap, _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
+
                 Flush();
                 TextureFilteringEnabled = filter;
             }
@@ -1076,6 +1085,7 @@ namespace Mojo.Graphics
         private EffectParameter _pWorldViewProjection;
         private EffectParameter _pDiffuseTexture;
         private EffectParameter _pNormalTexture;
+        private EffectParameter _pSpecularTexture;
 
         private void Initialize(Image rt)
         {
@@ -1092,7 +1102,7 @@ namespace Mojo.Graphics
             _pWorldViewProjection = _bumpEffect.Parameters["WorldViewProjection"];
             _pDiffuseTexture = _bumpEffect.Parameters["DiffuseSampler"];
             _pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
-
+            _pSpecularTexture = _bumpEffect.Parameters["SpecularSampler"];
 
 
             ResetMatrix();
@@ -1211,20 +1221,20 @@ namespace Mojo.Graphics
                 }
                 else if( opEffect == _bumpEffect)
                 {
-                    //_pWorldViewProjection.SetValue(WorldViewProj);
-                    //_bumpEffect = Global.Content.Load<Effect>("Effects/bump");
-                    //_pWorldViewProjection = _bumpEffect.Parameters["WorldViewProjection"];
+
                     _pDiffuseTexture.SetValue(op.img._texture);
-                    if(op.img._normal == null)
+                    _pNormalTexture.SetValue(op.img._normal ?? Global.DefaultNormal);
+
+                    if(op.img._specular == null)
                     {
-                        _pNormalTexture.SetValue(Global.DefaultNormal);
+                        _pSpecularTexture.SetValue(op.img._specular);
+                        var specularFactor = Math.Max(0, Math.Min(255, (int)(op.img.SpecularFactor * 255)));
+                        _pSpecularTexture.SetValue(Global.DefaultSpecular[specularFactor]);
                     }
                     else
                     {
-                        _pNormalTexture.SetValue(op.img._normal);
+                        _pSpecularTexture.SetValue(op.img._specular);
                     }
-                    
-                    //_pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
                 }
 
                 if (blendMode != op.blendMode)

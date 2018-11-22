@@ -16,7 +16,8 @@ sampler DiffuseSampler : register(s0);
 texture NormalTexture : register(t1);
 sampler NormalSampler : register(s1);
 
-
+texture SpecularTexture : register(t2);
+sampler SpecularSampler : register(s2);
 
 struct VertexShaderInput
 {
@@ -48,7 +49,9 @@ VertexShaderOutput MainVS(VertexShaderInput input)
 
 struct PixelShaderOutput
 {
-	float4 Color0 : COLOR0;  float4 Color1 : COLOR1;
+	float4 Color0 : COLOR0;  
+	float4 Color1 : COLOR1;
+	float4 Color2 : COLOR2;
 };
 
 PixelShaderOutput MainPS(VertexShaderOutput input) : COLOR
@@ -63,6 +66,7 @@ PixelShaderOutput MainPS(VertexShaderOutput input) : COLOR
 	PixelShaderOutput output = (PixelShaderOutput)0;
 	output.Color0 = diffuse * input.Color;
 	output.Color1 = float4(normal.rgb * diffuse.a, diffuse.a);
+	output.Color2 = tex2D(SpecularSampler, input.TexCoord0);
 
 	return output;
 }

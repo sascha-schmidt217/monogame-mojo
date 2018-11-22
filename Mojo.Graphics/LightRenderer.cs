@@ -270,7 +270,7 @@ namespace Mojo.Graphics
             }
         }
 
-        public void Render(RenderTarget2D normapMap)
+        public void Render(RenderTarget2D normapMap )
         {
             _shadowRenderer.Projection = _projection;
             _defaultEffect.Projection = _projection;
