@@ -67,9 +67,6 @@ namespace Mojo.Graphics
         private Image _originalRendertarget = null;
         private RenderTarget2D _currentRendertarget = null;
         private DrawOp _drawOp = new DrawOp();
-        
-        // light renderer
-        private ILightRenderer _lightRenderer;
 
         // G-Buffer
         private RenderTargetBinding[] _gBuffer;
@@ -77,9 +74,22 @@ namespace Mojo.Graphics
         private Image _normalMap;
         private Image _specularMap;
 
-        // shaders
+        // currently active shader when not in lighting mode
         private Effect _currentEffect;
+
+      
+
+        // shader used to render to G-Buffer
         private Effect _bumpEffect;
+        private EffectParameter _pWorldViewProjection;
+        private EffectParameter _pDiffuseTexture;
+        private EffectParameter _pNormalTexture;
+        private EffectParameter _pSpecularTexture;
+
+        // light renderer: G-Buffer => Lighting 
+        private ILightRenderer _lightRenderer;
+
+        // PostFX: Diffuse x Lighting + Specular
         private Effect _lightingEffect;
 
         // image of the currectly active font
@@ -1097,10 +1107,7 @@ namespace Mojo.Graphics
 
         #region internal stuff
 
-        private EffectParameter _pWorldViewProjection;
-        private EffectParameter _pDiffuseTexture;
-        private EffectParameter _pNormalTexture;
-        private EffectParameter _pSpecularTexture;
+      
 
         private void Initialize(Image rt)
         {
@@ -1118,8 +1125,6 @@ namespace Mojo.Graphics
             _pDiffuseTexture = _bumpEffect.Parameters["DiffuseSampler"];
             _pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
             _pSpecularTexture = _bumpEffect.Parameters["SpecularSampler"];
-
-    
 
             ResetMatrix();
             RenderTarget = _originalRendertarget;

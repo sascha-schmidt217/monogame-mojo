@@ -12,7 +12,8 @@ namespace Mojo.Graphics
     public enum ShadowType
     {
         Solid,
-        Illuminated
+        Illuminated,
+        Occluded
     }
 
     public interface IShadowRenderer
@@ -208,30 +209,41 @@ namespace Mojo.Graphics
                                 Global.QuadIndices, 0, _shadowRenderer.ShadowCount * 2);
 
 
-                    // Draw shadow casters, considering ShadowType
+                    // cutting out the collider from shadow
                     //
-                   
-                    _defaultEffect.CurrentTechnique.Passes.First().Apply();
 
+                    _defaultEffect.CurrentTechnique.Passes.First().Apply();
+                    
+              
                     foreach (var sop in _shadowOps)
                     {
-                        Global.Device.BlendState = sop.ShadowType == ShadowType.Illuminated ?
-                            BlendState.Opaque : MojoBlend.BlendShadow;
 
-                        fixed (MojoVertex* ptr = &_shadowCasterVertices[0])
+                        if (sop.ShadowType != ShadowType.Occluded) // cutting out the spotlight.
                         {
-                            int len = sop.Length;
-                            for (int i = 0; i < len; ++i)
+                            switch (sop.ShadowType)
                             {
-                                var v = _shadowVertices[sop.Offset + i];
-                                ptr[i].Transform(v.X, v.Y, Color.Black);
+                                case ShadowType.Illuminated:
+                                    Global.Device.BlendState = BlendState.Opaque;
+                                    break;
+                                case ShadowType.Solid:
+                                    Global.Device.BlendState = MojoBlend.BlendShadow;
+                                    break;
+                            }
+
+                            fixed (MojoVertex* ptr = &_shadowCasterVertices[0])
+                            {
+                                int len = sop.Length;
+                                for (int i = 0; i < len; ++i)
+                                {
+                                    var v = _shadowVertices[sop.Offset + i];
+                                    ptr[i].Transform(v.X, v.Y, Color.Black);
+                                }
                             }
                         }
-
+                    
                        Global.Device.DrawUserIndexedPrimitives<MojoVertex>(PrimitiveType.TriangleList,
-                            _shadowCasterVertices, 0, sop.Length, Global.FanIndices, 0, sop.Length - 2);
+                           _shadowCasterVertices, 0, sop.Length, Global.FanIndices, 0, sop.Length - 2);
                     }
-
                 }
             }
         }
