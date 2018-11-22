@@ -56,6 +56,8 @@ namespace Mojo.Graphics
             Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
             Tex0.X = u0;
             Tex0.Y = v0;
+            Tex1.X = t._tanX;
+            Tex1.Y = t._tanY;
             Color = color;
         }
 
@@ -66,6 +68,8 @@ namespace Mojo.Graphics
             Position.Y = (int)(0.5f + x0 * t._iy + y0 * t._jy + t._ty);
             Tex0.X = u0;
             Tex0.Y = v0;
+            Tex1.X = t._tanX;
+            Tex1.Y = t._tanY;
             Color = color;
         }
 

@@ -16,6 +16,7 @@ namespace Mojo.Graphics
         private EffectParameter _pWorldViewProj;
         private EffectParameter _pShadowMap;
         private EffectParameter _pInvTexSize;
+        private EffectParameter _pNormalMap;
 
         public LightEffect(Effect cloneSource) : base(cloneSource)
         {
@@ -25,6 +26,7 @@ namespace Mojo.Graphics
             _pWorldViewProj = Parameters["WorldViewProj"];
             _pShadowMap = Parameters["shadowMapSampler"];
             _pInvTexSize = Parameters["inv_tex_size"];
+            _pNormalMap = Parameters["normalMapSampler"];
         }
 
         public Vector2 InvTexSize
@@ -82,11 +84,24 @@ namespace Mojo.Graphics
         {
             set
             {
-                _pShadowMap.SetValue(value);
+                if(_pShadowMap != null)
+                 _pShadowMap.SetValue(value);
             }
             get
             {
                 return _pShadowMap.GetValueTexture2D();
+            }
+        }
+        public Texture2D Normalmap
+        {
+            set
+            {
+                if(_pNormalMap != null )
+                    _pNormalMap.SetValue(value);
+            }
+            get
+            {
+                return _pNormalMap.GetValueTexture2D();
             }
         }
     }

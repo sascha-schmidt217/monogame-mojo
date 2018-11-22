@@ -37,3 +37,15 @@
 /processorParam:DebugMode=Auto
 /build:Effects/spot_light.fx
 
+#begin Effects/bump.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/bump.fx
+
+#begin Effects/lighting.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/lighting.fx
+

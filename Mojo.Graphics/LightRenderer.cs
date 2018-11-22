@@ -60,8 +60,25 @@ namespace Mojo.Graphics
     {
         const float DEG_TO_RAD = 0.0174532925199432957692369076848861f;
 
+        public static BlendState LightBlend = new BlendState
+        {
+            ColorSourceBlend = Blend.One,
+            ColorDestinationBlend = Blend.One,
+            ColorBlendFunction = BlendFunction.Add,
+            AlphaSourceBlend = Blend.One,
+            AlphaDestinationBlend = Blend.One,
+            AlphaBlendFunction = BlendFunction.Add
+        };
+
+        private IShadowRenderer _shadowRenderer = new PenumbraShadow();
+
+        private List<PointLightOp> _pointLights = new List<PointLightOp>(1024);
+        private List<SpotLightOp> _spotLights = new List<SpotLightOp>(1024);
         private List<ShadowOp> _shadowOps = new List<ShadowOp>(1024);
         private List<Vector2> _shadowVertices = new List<Vector2>(16536);
+
+        private MojoVertex[] _lightVertices = new MojoVertex[4];
+        private MojoVertex[] _shadowCasterVertices = new MojoVertex[4096];
 
         private Matrix _projection;
         private BasicEffect _defaultEffect;
@@ -69,13 +86,9 @@ namespace Mojo.Graphics
         private SpotLightEffect _spotLightEffect;
         private Image _lightmap;
         private Image _shadowmap;
-        private List<PointLightOp> _pointLights = new List<PointLightOp>(1024);
-        private List<SpotLightOp> _spotLights = new List<SpotLightOp>(1024);
-        private IShadowRenderer _shadowRenderer = new PenumbraShadow();
+
         private int _width = 0;
         private int _height = 0;
-        private MojoVertex[] _lightVertices = new MojoVertex[4];
-        private MojoVertex[] _shadowCasterVertices = new MojoVertex[4096];
 
         public Color AmbientColor { get; set; }
 
@@ -254,14 +267,16 @@ namespace Mojo.Graphics
             }
         }
 
-        public void Render()
+        public void Render(RenderTarget2D normapMap)
         {
             _shadowRenderer.Projection = _projection;
             _defaultEffect.Projection = _projection;
+            _spotLightEffect.Normalmap = normapMap;
+            _pointLightEffect.Normalmap = normapMap;
 
             // fill lightmap with ambient color
             Global.Device.SetRenderTarget(_lightmap);
-            Global.Device.Clear(AmbientColor);
+            Global.Device.Clear(new Color(AmbientColor, 0.0f));
 
             // clear shadow map
             Global.Device.SetRenderTarget(_shadowmap);
@@ -311,7 +326,7 @@ namespace Mojo.Graphics
             }
 
             Global.Device.SetRenderTarget(_lightmap);
-            Global.Device.BlendState = MojoBlend.BlendAdd;
+            Global.Device.BlendState = LightBlend;
             Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
                          PrimitiveType.TriangleList, _lightVertices, 0, 4,
                          Global.QuadIndices, 0, 2);
@@ -344,7 +359,7 @@ namespace Mojo.Graphics
             }
 
             Global.Device.SetRenderTarget(_lightmap);
-            Global.Device.BlendState = MojoBlend.BlendAdd;
+            Global.Device.BlendState = LightBlend;
             Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
                          PrimitiveType.TriangleList, _lightVertices, 0, 4,
                          Global.QuadIndices, 0, 2);

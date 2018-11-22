@@ -46,6 +46,7 @@ namespace Mojo.Graphics
     {
         private bool _external = false;
 
+        internal Texture2D _normal;
         internal Texture2D _texture;
         internal Vector2 _handle;
         internal Rectangle _rect;
@@ -112,6 +113,14 @@ namespace Mojo.Graphics
         {
             _external = true;
             Init(tex, new Rectangle(0, 0, tex.Width, tex.Height), new Vector2(0, 0));
+            UpdateCoords();
+        }
+
+        public Image(string filename_diffuse,string filename_normal, float xHandle = 0.0f, float yHandle = 0.0f)
+        {
+            var tex = Global.Content.Load<Texture2D>(filename_diffuse);
+            _normal = Global.Content.Load<Texture2D>(filename_normal);
+            Init(tex, new Rectangle(0, 0, tex.Width, tex.Height), new Vector2(xHandle, yHandle));
             UpdateCoords();
         }
 

@@ -64,6 +64,8 @@ namespace Mojo.Graphics
         private DrawOp _drawOp = new DrawOp();
         private Quad _rect = new Quad();
         private Effect _currentEffect;
+        private Effect _bumpEffect;
+        private Effect _lightingEffect;
         private Image _originalRendertarget = null;
         private RenderTarget2D _currentRendertarget = null;
         private Buffer _drawBuffer { get; set; }
@@ -236,9 +238,13 @@ namespace Mojo.Graphics
 
             if (_lighting)
             {
-                // diffuse
+                // diffuse + normal
                 //
-                Device.SetRenderTarget(_diffuseMap);
+                // TODO: preInitialize RendertargetBindings!
+                var binding0 = new RenderTargetBinding(_diffuseMap);
+                var binding1 = new RenderTargetBinding(_normalMap);
+                Device.SetRenderTargets(binding0, binding1);
+                //Device.SetRenderTarget(_diffuseMap);
                 RenderDrawOps();
 
                 // TODO
@@ -355,6 +361,12 @@ namespace Mojo.Graphics
             _normalMap = Global.CreateRenderImage(Width, Height, ref _normalMap);
             _normalMap.RenderTarget.Name = "Normal";
 
+            Device.SetRenderTarget(_diffuseMap);
+            Device.Clear(Color.Black);
+
+            Device.SetRenderTarget(_normalMap);
+            Device.Clear(new Color(0.5f, 0.5f, 0));
+
             RenderTarget = _diffuseMap;
         }
 
@@ -373,29 +385,47 @@ namespace Mojo.Graphics
             //
             LightRenderer.AmbientColor = AmbientColor;
             LightRenderer.Resize(this.Width, this.Height);
-            LightRenderer.Render();
+            LightRenderer.Render(_normalMap);
             LightRenderer.Reset();
 
             // Combine diffuse an Lighting
+            //  diffuse * Lighting + specular
             //
             PushMatrix();
             ResetMatrix();
             RenderTarget = null;
             Color = Color.White;
+            Effect = _lightingEffect;
+            BlendMode = BlendMode.Opaque;
             Alpha = 1;
 
-            // diffuse to backbuffer
-            //
-            BlendMode = BlendMode.Alpha;
-            DrawImage(_diffuseMap, 0, 0);
+            _lightingEffect.Parameters["WorldViewProjection"].SetValue(WorldViewProj);
+            _lightingEffect.Parameters["DiffuseSampler"].SetValue(_diffuseMap);
+            _lightingEffect.Parameters["LightmapSampler"].SetValue(LightRenderer.LightMap);
 
-            // multiply with lightmap
+            DrawImage(_diffuseMap, 0, 0 );
+
+            // Show
             //
-            BlendMode = BlendMode.Multiply;
-            DrawImage(LightRenderer.LightMap, 0, 0);
             Flush();
+            Effect = null;
+
+            if (ShowGBuffer)
+            {
+                var filter = TextureFilteringEnabled;
+                TextureFilteringEnabled = true;
+                BlendMode = BlendMode.Opaque;
+                DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
+                DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
+                DrawImage(LightRenderer.LightMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
+                Flush();
+                TextureFilteringEnabled = filter;
+            }
+
             PopMatrix();
         }
+
+        bool ShowGBuffer { get; set; } = false;
 
         public void Begin()
         {
@@ -424,6 +454,13 @@ namespace Mojo.Graphics
 
             DefaultEffect.Projection = WorldViewProj;
             Effect.Parameters["WorldViewProj"].SetValue(WorldViewProj); // Add matrix dirty flag^
+
+            if(_lighting)
+            {
+                Effect = _bumpEffect;
+
+                _pWorldViewProjection.SetValue(WorldViewProj);
+            }
         }
 
         public void End()
@@ -1024,6 +1061,10 @@ namespace Mojo.Graphics
 
         #region internal stuff
 
+        private EffectParameter _pWorldViewProjection;
+        private EffectParameter _pDiffuseTexture;
+        private EffectParameter _pNormalTexture;
+
         private void Initialize(Image rt)
         {
             _originalRendertarget = rt;
@@ -1033,6 +1074,14 @@ namespace Mojo.Graphics
             DefaultEffect = new BasicEffect(Device);
             DefaultEffect.VertexColorEnabled = true;
             Effect = DefaultEffect;
+
+            _bumpEffect = Global.Content.Load<Effect>("Effects/bump");
+            _lightingEffect = Global.Content.Load<Effect>("Effects/lighting");
+            _pWorldViewProjection = _bumpEffect.Parameters["WorldViewProjection"];
+            _pDiffuseTexture = _bumpEffect.Parameters["DiffuseSampler"];
+            _pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
+
+
 
             ResetMatrix();
             RenderTarget = _originalRendertarget;
@@ -1079,10 +1128,10 @@ namespace Mojo.Graphics
                 var ptr = AddDrawOp((int)PrimType.Quad, 1, img, _currentEffect, _blendMode);
                 var quad = img.Quad;
 
-                ptr[0].Transform(quad.vertex0.X + x, quad.vertex0.Y + y, quad.u0, quad.v0, _transform, _color);
-                ptr[1].Transform(quad.vertex1.X + x, quad.vertex1.Y + y, quad.u1, quad.v0, _transform, _color);
-                ptr[2].Transform(quad.vertex2.X + x, quad.vertex2.Y + y, quad.u1, quad.v1, _transform, _color);
-                ptr[3].Transform(quad.vertex3.X + x, quad.vertex3.Y + y, quad.u0, quad.v1, _transform, _color);
+                ptr[0].Transform(quad.vertex0.X + x, quad.vertex0.Y + y, quad.u0, quad.v0, _transform._tanX, _transform._tanY, _transform, _color);
+                ptr[1].Transform(quad.vertex1.X + x, quad.vertex1.Y + y, quad.u1, quad.v0, _transform._tanX, _transform._tanY, _transform, _color);
+                ptr[2].Transform(quad.vertex2.X + x, quad.vertex2.Y + y, quad.u1, quad.v1, _transform._tanX, _transform._tanY, _transform, _color);
+                ptr[3].Transform(quad.vertex3.X + x, quad.vertex3.Y + y, quad.u0, quad.v1, _transform._tanX, _transform._tanY, _transform, _color);
 
                 if(img.ShadowCaster != null)
                 {
@@ -1147,6 +1196,23 @@ namespace Mojo.Graphics
                     {
                         DefaultEffect.TextureEnabled = false;
                     }
+                }
+                else if( opEffect == _bumpEffect)
+                {
+                    //_pWorldViewProjection.SetValue(WorldViewProj);
+                    //_bumpEffect = Global.Content.Load<Effect>("Effects/bump");
+                    //_pWorldViewProjection = _bumpEffect.Parameters["WorldViewProjection"];
+                    _pDiffuseTexture.SetValue(op.img._texture);
+                    if(op.img._normal == null)
+                    {
+                        _pNormalTexture.SetValue(Global.DefaultNormal);
+                    }
+                    else
+                    {
+                        _pNormalTexture.SetValue(op.img._normal);
+                    }
+                    
+                    //_pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
                 }
 
                 if (blendMode != op.blendMode)

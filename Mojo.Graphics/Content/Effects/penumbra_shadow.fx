@@ -50,7 +50,7 @@ VertexOut VS(VertexIn vin)
 
 	// Setting projected.w to 0 will cause the position to be projected (scaled) infinitely far away in the 
 	// perspective division phase. Instead of dividing by 0, the pipeline seems to divide by a very small positive number instead.
-	float4 projected = float4(position - projectionOffset*vin.Stencil.y, 0.0, 1.0 - vin.Stencil.y);
+	float4 projected = float4(position - projectionOffset*vin.Stencil.y, 0.0f, 1.0 - vin.Stencil.y);
 
 	// Transform to clip space.
 	float4 clipPosition = mul(projected, WorldViewProjection);

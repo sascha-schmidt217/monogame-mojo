@@ -15,7 +15,7 @@ namespace Mojo.Graphics
         Image LightMap { get; }
         Color AmbientColor { get; set; }
         void Resize(int width, int height);
-        void Render();
+        void Render(RenderTarget2D normapMap);
         void Reset();
         void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated);
         void AddPointLight(Transform2D mat, Color c, float range, float intensity, float size);
@@ -38,6 +38,27 @@ namespace Mojo.Graphics
         internal static Int16[] FanIndices;
         internal static RasterizerState RasterizerStateScissor;
 
+        private static RenderTarget2D _defaultNormal;
+
+        internal static RenderTarget2D DefaultNormal
+        {
+            get
+            {
+                if(_defaultNormal == null)
+                {
+                    _defaultNormal = new RenderTarget2D(Device, 1, 1);
+
+                    var rt = Device.GetRenderTargets();
+
+                    Device.SetRenderTarget(_defaultNormal);
+                    Device.Clear(new Color(0.5f, 0.5f, 1.0f));
+
+                    Device.SetRenderTargets(rt);
+                }
+
+                return _defaultNormal;
+            }
+        }
 
         public static void Initialize(Game game)
         {
@@ -137,13 +158,15 @@ namespace Mojo.Graphics
         public Vector2 vertex2;
         public Vector2 vertex3;
     };
-   
 
+    // Affine 3x3 matrix class
     public struct Transform2D
     {
         private static Transform2D _inverseTransform = new Transform2D();
 
         public float _ix, _iy, _jx, _jy, _tx, _ty;
+        public float _tanX, _tanY;
+
         public bool _tFormed;
 
         public Vector2 TransformPoint(Vector2 v)
@@ -162,6 +185,10 @@ namespace Mojo.Graphics
             _jy = 1.0f;
             _tx = 0.0f;
             _ty = 0.0f;
+
+            float length = (float)Math.Sqrt(_ix * _ix + _iy * _iy);
+            _tanX = _ix / length;
+            _tanY = _iy / length;
         }
 
         public void Transform(float ix, float iy, float jx, float jy, float tx, float ty)
@@ -183,6 +210,11 @@ namespace Mojo.Graphics
             _jy = jy;
             _tx = tx;
             _ty = ty;
+
+            float length = (float)Math.Sqrt(ix * ix + iy * iy);
+            _tanX = ix / length;
+            _tanY = iy / length;
+
             _tFormed = (ix != 1 || iy != 0 || jx != 0 || jy != 1 || tx != 0 || ty != 0);
         }
 
@@ -275,11 +307,20 @@ namespace Mojo.Graphics
 
         public static BlendState BlendAdd = new BlendState
         {
-            ColorSourceBlend = Blend.SourceAlpha,
+            //ColorSourceBlend = Blend.SourceAlpha,
+            //ColorDestinationBlend = Blend.One,
+            //ColorBlendFunction = BlendFunction.Add,
+            //AlphaSourceBlend = Blend.Zero,
+            //AlphaDestinationBlend = Blend.One
+
+            ColorSourceBlend = Blend.One,
             ColorDestinationBlend = Blend.One,
             ColorBlendFunction = BlendFunction.Add,
-            AlphaSourceBlend = Blend.Zero,
-            AlphaDestinationBlend = Blend.One
+            AlphaSourceBlend = Blend.One,
+            AlphaDestinationBlend = Blend.One,
+            AlphaBlendFunction = BlendFunction.Add
+            
+
         };
 
         public static BlendState BlendAlpha = new BlendState

@@ -26,9 +26,9 @@ namespace Example
             base.LoadContent();
             base.LightingEnabled = true;
 
-            _floor = new Image("Images/tiles");
-            _logo = new Image("Images/logo",24,24);
-            _logo2 = new Image("Images/logo2",24,24);
+            _floor = new Image("Images/tiles", "Images/tiles_n");
+            _logo = new Image("Images/logo", "Images/logo_n", 24,24);
+            _logo2 = new Image("Images/logo2", "Images/logo2_n", 24,24);
             _logo.ShadowCaster = new ShadowCaster(_logo.Width / 2, 24);
             _logo2.ShadowCaster = new ShadowCaster(new Rectangle(-_logo2.Width/2, -_logo2.Height/2, _logo2.Width, _logo2.Height));
         }
@@ -56,8 +56,8 @@ namespace Example
             Canvas.Clear(Color.Red);
 
             Canvas.Translate(Width / 2, Height / 2);
-            //Canvas.Scale((float)System.Math.Sin(_viewRot * 3) * 0.25f + 1.25f, (float)System.Math.Cos(_viewRot * 5) * 0.25f + 1.25f);
-            Canvas.Rotate(_viewRot* RAD_TO_DEG);
+            Canvas.Scale((float)System.Math.Sin(_viewRot * 3) * 0.25f + 1.25f, (float)System.Math.Cos(_viewRot * 5) * 0.25f + 1.25f);
+            Canvas.Rotate( _viewRot* RAD_TO_DEG);
             Canvas.Translate(-Width / 2, -Height / 2);
 
             // Draw background
@@ -87,6 +87,7 @@ namespace Example
 
                     k++;
                 }
+      
             }
 
             // add lights
@@ -95,30 +96,31 @@ namespace Example
             {
                 Canvas.Color = new Color(rnd.Next(64, 255), rnd.Next(64, 255), rnd.Next(64, 255));
             
-                if (i % 2 == 0)
+                if (true)//i % 2 == 0)
                 {
-                    Canvas.AddSpotLight(Width/2, Height/2, _lightRot * RAD_TO_DEG + i * 90, 512, 15, 35, 4, 16);
+                    Canvas.AddSpotLight(Width/2, Height/2, _lightRot * RAD_TO_DEG + i * 90, 512, 15, 35, 2, 16);
                 }
                 else
                 {
                     float angle = _lightRot + i * (float)MathHelper.Pi / 2;
-                         Canvas.AddPointLight(
-                         Width / 2 + (float)System.Math.Cos(angle) * 64,
-                         Height / 2 - (float)System.Math.Sin(angle) * 64, 512, 4, 12);
+                         Canvas.AddPointLight( //mouse.X, mouse.Y, 512, 1,12);
+                   Width / 2 + (float)System.Math.Cos(angle) * 64,
+                        Height / 2 - (float)System.Math.Sin(angle) * 64, 512, 4, 12);
                 }
-            
+     
             }
-            for (float an = -(float)System.Math.PI/6; an < System.Math.PI * 2; an += (float)System.Math.PI * 2 / 8)
-            {
-                for (int i = 0; i < 4; ++i)
-                {
-                    float xx = Width / 2 + (float)System.Math.Cos(an) * 256;
-                    float yy = Height / 2 + (float)System.Math.Sin(an) * 256;
-            
-                    Canvas.Color = new Color(rnd.Next(64, 255), rnd.Next(64, 255), rnd.Next(64, 255));
-                    Canvas.AddSpotLight(xx, yy, _lightRot * RAD_TO_DEG + i * 90, 256, 15, 35, 4, 16);
-                }
-            }
+           //for (float an = -(float)System.Math.PI/6; an < System.Math.PI * 2; an += (float)System.Math.PI * 2 / 8)
+           //{
+           //    //for (int i = 0; i < 4; ++i)
+           //    {
+           //        float xx = Width / 2 + (float)System.Math.Cos(an+ _lightRot) * 256;
+           //        float yy = Height / 2 + (float)System.Math.Sin(an+ _lightRot) * 256;
+           //
+           //        Canvas.Color = new Color(rnd.Next(64, 255), rnd.Next(64, 255), rnd.Next(64, 255));
+           //         //Canvas.AddSpotLight(xx, yy, _lightRot * RAD_TO_DEG + i * 90, 256, 15, 35, 4, 16);
+           //         Canvas.AddPointLight(xx, yy, 256, 4, 12);
+           //     }
+           //}
 
             Canvas.EndLighting();
             base.Draw(gameTime);
