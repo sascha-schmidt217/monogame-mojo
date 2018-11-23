@@ -92,8 +92,6 @@ namespace Mojo.Graphics
         private int _width = 0;
         private int _height = 0;
 
-        public Color AmbientColor { get; set; }
-
         public LightRenderer()
         {
             _spotLightEffect = new SpotLightEffect(Global.Content.Load<Effect>("Effects/spot_light"));
@@ -102,16 +100,9 @@ namespace Mojo.Graphics
             _shadowRenderer.OnLoad();           
         }
 
-        public Image LightMap
+        public void AddShadowCaster(Transform2D mat, ShadowCaster caster, float tx, float ty)
         {
-            get
-            {
-                return _lightmap;
-            }
-            private set
-            {
-                _lightmap = value;
-            }
+            AddShadowCaster(mat, caster.Vertices, tx, ty, caster.ShadowType);
         }
 
         public void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated)
@@ -189,6 +180,7 @@ namespace Mojo.Graphics
                 {
                     for (int i = 0; i < op.Length; ++i)
                     {
+                        // shadow caster is visible from light?
                         if (Vector2.DistanceSquared(vertexArray[op.Offset + i], lv) < range)
                         {
                             _shadowRenderer.AddShadowVertices(op.ShadowType, vertexArray, op.Offset, op.Length);
@@ -209,17 +201,21 @@ namespace Mojo.Graphics
                                 Global.QuadIndices, 0, _shadowRenderer.ShadowCount * 2);
 
 
-                    // cutting out the collider from shadow
+                    // cutting out the shadow caster from the shadow volume
                     //
+                    bool _defaultShaderInitialize = false;
 
-                    _defaultEffect.CurrentTechnique.Passes.First().Apply();
-                    
-              
                     foreach (var sop in _shadowOps)
                     {
 
-                        if (sop.ShadowType != ShadowType.Occluded) // cutting out the spotlight.
+                        if (sop.ShadowType != ShadowType.Occluded) 
                         {
+                            if(!_defaultShaderInitialize)
+                            {
+                                _defaultShaderInitialize = true;
+                                _defaultEffect.CurrentTechnique.Passes.First().Apply();
+                            }
+
                             switch (sop.ShadowType)
                             {
                                 case ShadowType.Illuminated:
@@ -239,10 +235,10 @@ namespace Mojo.Graphics
                                     ptr[i].Transform(v.X, v.Y, Color.Black);
                                 }
                             }
+
+                            Global.Device.DrawUserIndexedPrimitives<MojoVertex>(PrimitiveType.TriangleList,
+                                    _shadowCasterVertices, 0, sop.Length, Global.FanIndices, 0, sop.Length - 2);
                         }
-                    
-                       Global.Device.DrawUserIndexedPrimitives<MojoVertex>(PrimitiveType.TriangleList,
-                           _shadowCasterVertices, 0, sop.Length, Global.FanIndices, 0, sop.Length - 2);
                     }
                 }
             }
@@ -282,7 +278,7 @@ namespace Mojo.Graphics
             }
         }
 
-        public void Render(RenderTarget2D normapMap )
+        public RenderTarget2D Render(RenderTarget2D normapMap, Color ambientColor, bool shadow)
         {
             _shadowRenderer.Projection = _projection;
             _defaultEffect.Projection = _projection;
@@ -291,25 +287,63 @@ namespace Mojo.Graphics
 
             // fill lightmap with ambient color
             Global.Device.SetRenderTarget(_lightmap);
-            Global.Device.Clear(new Color(AmbientColor, 0.0f));
+            Global.Device.Clear(new Color(ambientColor, 0.0f));
 
             // clear shadow map
             Global.Device.SetRenderTarget(_shadowmap);
             Global.Device.Clear(Color.White);
 
-            // render pointlights 
-            foreach (var op in _pointLights)
+            if (shadow)
             {
-                DrawShadows(op.Location, op.Size, op.Range*op.Range);
-                DrawPointLight(op as PointLightOp);
+                // render pointlights 
+                foreach (var op in _pointLights)
+                {
+                    DrawShadows(op.Location, op.Size, op.Range * op.Range);
+
+                    _pointLightEffect.Shadowmap = _shadowmap;
+                    _pointLightEffect.WorldViewProj = _projection;
+                 
+
+                    DrawPointLight(op as PointLightOp);
+                }
+
+                // render spotlights
+                foreach (var op in _spotLights)
+                {
+                    DrawShadows(op.Location, op.Size, op.Range * op.Range);
+
+                    _spotLightEffect.Shadowmap = _shadowmap;
+                    _spotLightEffect.WorldViewProj = _projection;
+
+                    DrawSpotLight(op as SpotLightOp);
+                }
+            }
+            else
+            {
+                // render pointlights 
+
+                _pointLightEffect.Shadowmap = _shadowmap;
+                _pointLightEffect.WorldViewProj = _projection;
+
+                foreach (var op in _pointLights)
+                {
+                    DrawPointLight(op as PointLightOp);
+                }
+
+                // render spotlights
+
+                _spotLightEffect.Shadowmap = _shadowmap;
+                _spotLightEffect.WorldViewProj = _projection;
+
+                foreach (var op in _spotLights)
+                {
+                    DrawSpotLight(op as SpotLightOp);
+                }
             }
 
-            // render spotlights
-            foreach ( var op in _spotLights)
-            {
-                DrawShadows(op.Location, op.Size, op.Range * op.Range);
-                DrawSpotLight(op as SpotLightOp);
-            }
+            Reset();
+
+            return _lightmap;
         }
 
         public void Reset()
@@ -322,13 +356,11 @@ namespace Mojo.Graphics
 
         private void DrawPointLight(PointLightOp op)
         {
-            _pointLightEffect.Shadowmap = _shadowmap;
-            _pointLightEffect.WorldViewProj = _projection;
             _pointLightEffect.Range = op.Range;
             _pointLightEffect.Intensity = op.Intensity;
             _pointLightEffect.Position = new Vector2(op.Location.X, op.Location.Y);
-            _pointLightEffect.CurrentTechnique.Passes.First().Apply();
             _pointLightEffect.Depth = op.Depth;
+            _pointLightEffect.CurrentTechnique.Passes.First().Apply();
 
             unsafe
             {
@@ -350,8 +382,6 @@ namespace Mojo.Graphics
 
         private void DrawSpotLight(SpotLightOp op)
         {
-            _spotLightEffect.Shadowmap = _shadowmap;
-            _spotLightEffect.WorldViewProj = _projection;
             _spotLightEffect.Range = op.Range;
             _spotLightEffect.Intensity = op.Intensity;
             _spotLightEffect.Position = new Vector2(op.Location.X, op.Location.Y);

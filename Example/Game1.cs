@@ -38,6 +38,8 @@ namespace Example
 
         private float _lightDepth = 96.0f;
         private bool _spaceHit = true;
+        private bool _enterHit = true;
+        private ShadowType _shadowType = ShadowType.Illuminated;
 
         protected override void Update(GameTime gameTime)
         {
@@ -60,6 +62,22 @@ namespace Example
             else if(!state.IsKeyDown(Keys.Space))
                 _spaceHit = true;
 
+            if (_enterHit && state.IsKeyDown(Keys.Enter))
+            {
+                Canvas.ShadowEnabled = !Canvas.ShadowEnabled;
+                _enterHit = false;
+            }
+            else if (!state.IsKeyDown(Keys.Enter))
+                _enterHit = true;
+
+
+            if(state.IsKeyDown(Keys.F1))
+                _shadowType = ShadowType.Illuminated;
+            else if (state.IsKeyDown(Keys.F2))
+                _shadowType = ShadowType.Occluded;
+            else if (state.IsKeyDown(Keys.F3))
+                _shadowType = ShadowType.Solid;
+
             base.Update(gameTime);
         }
 
@@ -74,7 +92,7 @@ namespace Example
 
             // Set Ambient color used for lighting
             Canvas.TextureFilteringEnabled = true;
-            Canvas.AmbientColor = new Color(64,64,64);
+            Canvas.AmbientColor = new Color(48,48,48);
             Canvas.Clear(Color.Red);
 
             // Draw background
@@ -86,6 +104,9 @@ namespace Example
                     Canvas.DrawImage(_floor, x, y);
                 }
             }
+
+            _logo.ShadowCaster.ShadowType = _shadowType;
+            _logo2.ShadowCaster.ShadowType = _shadowType;
 
             // Draw sprites
             int k = 0;

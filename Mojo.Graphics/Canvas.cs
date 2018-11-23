@@ -77,7 +77,8 @@ namespace Mojo.Graphics
         // currently active shader when not in lighting mode
         private Effect _currentEffect;
 
-      
+        // shader that combines lighting and diffuse
+        private Effect _lightingEffect;
 
         // shader used to render to G-Buffer
         private Effect _bumpEffect;
@@ -88,9 +89,6 @@ namespace Mojo.Graphics
 
         // light renderer: G-Buffer => Lighting 
         private ILightRenderer _lightRenderer;
-
-        // PostFX: Diffuse x Lighting + Specular
-        private Effect _lightingEffect;
 
         // image of the currectly active font
         private Image _fontImage;
@@ -121,6 +119,16 @@ namespace Mojo.Graphics
                 SetMatrix(value);
             }
         }
+
+        /// <summary>
+        /// Enables or disables shadow volumes.
+        /// </summary>
+        public bool ShadowEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Enables or disables normal mapping.. TODO
+        /// </summary>
+        public bool NormalmapEnabled { get; private set; } = true;
 
         /// <summary>
         /// The current world view projection matrix.
@@ -416,10 +424,9 @@ namespace Mojo.Graphics
 
             // Update lighting
             //
-            LightRenderer.AmbientColor = AmbientColor;
             LightRenderer.Resize(this.Width, this.Height);
-            LightRenderer.Render(_normalMap);
-            LightRenderer.Reset();
+            var lightmap = LightRenderer.Render(_normalMap, AmbientColor, ShadowEnabled);
+     
 
             // Combine diffuse an Lighting
             //  diffuse * Lighting + specular
@@ -435,7 +442,7 @@ namespace Mojo.Graphics
 
             _lightingEffect.Parameters["WorldViewProjection"].SetValue(WorldViewProj);
             _lightingEffect.Parameters["DiffuseSampler"].SetValue(_diffuseMap);
-            _lightingEffect.Parameters["LightmapSampler"].SetValue(LightRenderer.LightMap);
+            _lightingEffect.Parameters["LightmapSampler"].SetValue(lightmap);
             _lightingEffect.Parameters["SpecularMapSampler"].SetValue(_specularMap);
 
             DrawImage(_diffuseMap, 0, 0 );
@@ -453,7 +460,9 @@ namespace Mojo.Graphics
                 BlendMode = BlendMode.Opaque;
                 DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
                 DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
-                DrawImage(LightRenderer.LightMap, _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
+
+                if(lightmap != null)
+                    DrawImage(new Image(lightmap), _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
 
 
                 BlendMode = BlendMode.Opaque;
@@ -497,16 +506,28 @@ namespace Mojo.Graphics
             Effect = DefaultEffect;
             RenderTarget = null;
 
-            DefaultEffect.Projection = WorldViewProj;
             Effect.Parameters["WorldViewProj"].SetValue(WorldViewProj); // Add matrix dirty flag^
 
             if(_lighting)
             {
-                Effect = _bumpEffect;
+                if (NormalmapEnabled)
+                {
+                    Effect = _bumpEffect;
+                    _pWorldViewProjection.SetValue(WorldViewProj);
+                }
+                else
+                {
+                    Effect = DefaultEffect;
+                }
+            }
 
-                _pWorldViewProjection.SetValue(WorldViewProj);
+            if(Effect == DefaultEffect)
+            {
+                DefaultEffect.Projection = WorldViewProj;
             }
         }
+
+        
 
         public void End()
         {
@@ -1120,11 +1141,12 @@ namespace Mojo.Graphics
             Effect = DefaultEffect;
 
             _bumpEffect = Global.Content.Load<Effect>("Effects/bump");
-            _lightingEffect = Global.Content.Load<Effect>("Effects/lighting");
             _pWorldViewProjection = _bumpEffect.Parameters["WorldViewProjection"];
             _pDiffuseTexture = _bumpEffect.Parameters["DiffuseSampler"];
             _pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
             _pSpecularTexture = _bumpEffect.Parameters["SpecularSampler"];
+
+            _lightingEffect = Global.Content.Load<Effect>("Effects/lighting");
 
             ResetMatrix();
             RenderTarget = _originalRendertarget;
@@ -1178,7 +1200,7 @@ namespace Mojo.Graphics
 
                 if(img.ShadowCaster != null)
                 {
-                    AddShadowCaster(img.ShadowCaster.Vertices, x + img.Width / 2 , y + img.Height / 2);
+                    LightRenderer.AddShadowCaster(Matrix, img.ShadowCaster, x + img.Width / 2, y + img.Height / 2);
                 }
             }
         }

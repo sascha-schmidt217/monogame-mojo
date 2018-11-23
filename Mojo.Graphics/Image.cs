@@ -12,6 +12,7 @@ namespace Mojo.Graphics
     public class ShadowCaster
     {
         public Vector2[] Vertices { get; set; }
+        public ShadowType ShadowType { get; set; } = ShadowType.Illuminated;
 
         public ShadowCaster(float radius, int segments)
         {

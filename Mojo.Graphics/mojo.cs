@@ -12,11 +12,10 @@ namespace Mojo.Graphics
 {
     public interface ILightRenderer
     {
-        Image LightMap { get; }
-        Color AmbientColor { get; set; }
         void Resize(int width, int height);
-        void Render(RenderTarget2D normapMap);
+        RenderTarget2D Render(RenderTarget2D normapMap,Color ambientColor, bool shadow);
         void Reset();
+        void AddShadowCaster(Transform2D mat, ShadowCaster caster, float tx, float ty);
         void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated);
         void AddPointLight(Transform2D mat, Color c, float range, float intensity, float size, float depth = 96.0f);
         void AddSpotLight(Transform2D mat, Color c, float inner, float outer, float range, float intensity, float size, float depth = 96.0f);
