@@ -13,7 +13,7 @@ namespace Mojo.Graphics
     public interface ILightRenderer
     {
         void Resize(int width, int height);
-        RenderTarget2D Render(RenderTarget2D normapMap,Color ambientColor, bool shadow);
+        RenderTarget2D Render(RenderTarget2D normapMap,Color ambientColor, bool shadow, bool normalmap);
         void Reset();
         void AddShadowCaster(Transform2D mat, ShadowCaster caster, float tx, float ty);
         void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated);

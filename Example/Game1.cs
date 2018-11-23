@@ -39,6 +39,7 @@ namespace Example
         private float _lightDepth = 96.0f;
         private bool _spaceHit = true;
         private bool _enterHit = true;
+        private bool _f4Hit= true;
         private ShadowType _shadowType = ShadowType.Illuminated;
 
         protected override void Update(GameTime gameTime)
@@ -70,13 +71,20 @@ namespace Example
             else if (!state.IsKeyDown(Keys.Enter))
                 _enterHit = true;
 
-
             if(state.IsKeyDown(Keys.F1))
                 _shadowType = ShadowType.Illuminated;
             else if (state.IsKeyDown(Keys.F2))
                 _shadowType = ShadowType.Occluded;
             else if (state.IsKeyDown(Keys.F3))
                 _shadowType = ShadowType.Solid;
+
+            if (_f4Hit && state.IsKeyDown(Keys.F4))
+            {
+                Canvas.NormalmapEnabled = !Canvas.NormalmapEnabled;
+                _f4Hit = false;
+            }
+            else if (!state.IsKeyDown(Keys.F4))
+                _f4Hit = true;
 
             base.Update(gameTime);
         }

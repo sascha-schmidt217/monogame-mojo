@@ -22,6 +22,7 @@ float intensity;
 float radius;
 float2 inv_tex_size;
 float m_LightDepth;
+float useNormalmap;
 
 struct VertexShaderInput
 {
@@ -60,7 +61,6 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 
 	//////
 
-	float3 light_dir_norm = normalize(float3(input.light_dir, m_LightDepth));
 	float2 light_dir =  input.light_dir;
 
 	// lighting attentuation
@@ -68,26 +68,39 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	float dist =  length(light_dir);
 	float alpha = pow(clamp(1.0f - dist / radius, 0.0f, 1.0f), intensity);
 
-	// normal
-	//
-	float3 normal = tex2D(normalMapSampler, input.TexCoord0).xyz;
-	float gloss = normal.z;
-	normal.xy = mad(normal.xy, 2.0f, -1.0f);
-	normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
-
-	// normal lighting
-	float ndotl = max( dot(normal, light_dir_norm), 0.0);
-
-	// specular
-	float3 hvec = normalize(light_dir_norm + float3(0.0f, 0.0f, 1.0f));
-	float ndoth = max(dot(normal, hvec), 0.0f);
-	float specular = pow(ndoth, 128.0f) * gloss;
-
 	// shadow
 	float shadow = tex2D(shadowMapSampler, input.TexCoord0).a;
 
 	float factor = alpha * shadow;
-	return float4(input.LightColor.rgb * ndotl * factor, specular * shadow  * factor);
+
+	if (useNormalmap != 0)
+	{
+
+		// normal
+		//
+		float3 normal = tex2D(normalMapSampler, input.TexCoord0).xyz;
+		float gloss = normal.z;
+		normal.xy = mad(normal.xy, 2.0f, -1.0f);
+		normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+
+		// normal lighting
+		float3 light_dir_norm = normalize(float3(input.light_dir, m_LightDepth));
+		float ndotl = max(dot(normal, light_dir_norm), 0.0);
+
+		// specular
+		float3 hvec = normalize(light_dir_norm + float3(0.0f, 0.0f, 1.0f));
+		float ndoth = max(dot(normal, hvec), 0.0f);
+		float specular = pow(ndoth, 128.0f) * gloss;
+
+		// rgb = lightmap
+		// a = specular reflection
+		return float4(input.LightColor.rgb * ndotl * factor, specular * shadow  * factor);
+
+	}
+	else
+	{
+		return float4(input.LightColor.rgb * factor, 0.0f);
+	}
 }
 
 technique BasicColorDrawing{

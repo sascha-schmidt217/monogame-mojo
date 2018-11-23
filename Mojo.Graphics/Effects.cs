@@ -18,6 +18,7 @@ namespace Mojo.Graphics
         private EffectParameter _pShadowMap;
         private EffectParameter _pInvTexSize;
         private EffectParameter _pNormalMap;
+        private EffectParameter _pUseNormalmap;
 
         public LightEffect(Effect cloneSource) : base(cloneSource)
         {
@@ -29,6 +30,7 @@ namespace Mojo.Graphics
             _pShadowMap = Parameters["shadowMapSampler"];
             _pInvTexSize = Parameters["inv_tex_size"];
             _pNormalMap = Parameters["normalMapSampler"];
+            _pUseNormalmap = Parameters["useNormalmap"]; ;
         }
 
         public Vector2 InvTexSize
@@ -38,6 +40,15 @@ namespace Mojo.Graphics
                 _pInvTexSize.SetValue(value);
             }
         }
+
+        public bool NormalmapEnabled
+        {
+            set
+            {
+                _pUseNormalmap.SetValue(value ? 1.0f : 0.0f);
+            }
+        }
+
         public Matrix WorldViewProj
         {
             get

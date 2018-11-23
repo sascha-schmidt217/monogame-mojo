@@ -278,12 +278,22 @@ namespace Mojo.Graphics
             }
         }
 
-        public RenderTarget2D Render(RenderTarget2D normapMap, Color ambientColor, bool shadow)
+        public RenderTarget2D Render(RenderTarget2D normapMap, Color ambientColor, bool shadowEnabled, bool normalmapEnabled)
         {
-            _shadowRenderer.Projection = _projection;
-            _defaultEffect.Projection = _projection;
-            _spotLightEffect.Normalmap = normapMap;
-            _pointLightEffect.Normalmap = normapMap;
+            if (shadowEnabled)
+            {
+                _shadowRenderer.Projection = _projection;
+                _defaultEffect.Projection = _projection;
+            }
+
+            _spotLightEffect.NormalmapEnabled = normalmapEnabled;
+            _pointLightEffect.NormalmapEnabled = normalmapEnabled;
+
+            if (normalmapEnabled)
+            {
+                _spotLightEffect.Normalmap = normapMap;
+                _pointLightEffect.Normalmap = normapMap;
+            }
 
             // fill lightmap with ambient color
             Global.Device.SetRenderTarget(_lightmap);
@@ -293,7 +303,7 @@ namespace Mojo.Graphics
             Global.Device.SetRenderTarget(_shadowmap);
             Global.Device.Clear(Color.White);
 
-            if (shadow)
+            if (shadowEnabled)
             {
                 // render pointlights 
                 foreach (var op in _pointLights)
@@ -302,8 +312,7 @@ namespace Mojo.Graphics
 
                     _pointLightEffect.Shadowmap = _shadowmap;
                     _pointLightEffect.WorldViewProj = _projection;
-                 
-
+  
                     DrawPointLight(op as PointLightOp);
                 }
 

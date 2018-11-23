@@ -121,6 +121,11 @@ namespace Mojo.Graphics
         }
 
         /// <summary>
+        /// Enables or disables a debug overlay, which displays the G-Buffer.
+        /// </summary>
+        public bool ShowGBuffer { get; set; } = false;
+
+        /// <summary>
         /// Enables or disables shadow volumes.
         /// </summary>
         public bool ShadowEnabled { get; set; } = true;
@@ -128,7 +133,7 @@ namespace Mojo.Graphics
         /// <summary>
         /// Enables or disables normal mapping.. TODO
         /// </summary>
-        public bool NormalmapEnabled { get; private set; } = true;
+        public bool NormalmapEnabled { get; set; } = true;
 
         /// <summary>
         /// The current world view projection matrix.
@@ -425,7 +430,7 @@ namespace Mojo.Graphics
             // Update lighting
             //
             LightRenderer.Resize(this.Width, this.Height);
-            var lightmap = LightRenderer.Render(_normalMap, AmbientColor, ShadowEnabled);
+            var lightmap = LightRenderer.Render(_normalMap, AmbientColor, ShadowEnabled, NormalmapEnabled);
      
 
             // Combine diffuse an Lighting
@@ -461,9 +466,17 @@ namespace Mojo.Graphics
                 DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
                 DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
 
-                if(lightmap != null)
-                    DrawImage(new Image(lightmap), _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
-
+                if (lightmap != null)
+                {
+                    BlendMode = BlendMode.Alpha;
+                    Color = Color.Black;
+                    DrawRect(_normalMap.Width * 0.6f, 0, _normalMap.Width * 0.2f, _normalMap.Height * 0.2f);
+                    Color = Color.White;
+                    var lightmapImg = new Image(lightmap);
+                    DrawImage(lightmapImg, _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
+                    BlendMode = BlendMode.Opaque;
+                    DrawImage(lightmapImg, _normalMap.Width * 0.8f, 0, 0.2f, 0.2f, 0);
+                }
 
                 BlendMode = BlendMode.Opaque;
                 DrawRect(_normalMap.Width * 0.4f, 0, _normalMap.Width * 0.2f, _normalMap.Height * 0.2f);
@@ -478,8 +491,6 @@ namespace Mojo.Graphics
 
             PopMatrix();
         }
-
-        public bool ShowGBuffer { get; set; } = false;
 
         public void Begin()
         {
