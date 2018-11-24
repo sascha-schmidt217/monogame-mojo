@@ -25,18 +25,6 @@
 /processorParam:DebugMode=Auto
 /build:Effects/penumbra_shadow.fx
 
-#begin Effects/point_light.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/build:Effects/point_light.fx
-
-#begin Effects/spot_light.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/build:Effects/spot_light.fx
-
 #begin Effects/bump.fx
 /importer:EffectImporter
 /processor:EffectProcessor
@@ -48,4 +36,10 @@
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /build:Effects/lighting.fx
+
+#begin Effects/light.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/light.fx
 

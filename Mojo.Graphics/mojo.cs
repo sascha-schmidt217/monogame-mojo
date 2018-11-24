@@ -88,10 +88,12 @@ namespace Mojo.Graphics
             Game = game;
             Content = game.Content;
 
-            RasterizerStateScissor = new RasterizerState();
-            RasterizerStateScissor.ScissorTestEnable = true;
-            RasterizerStateScissor.SlopeScaleDepthBias = 100.0f;
-            RasterizerStateScissor.CullMode = CullMode.None;
+            RasterizerStateScissor = new RasterizerState()
+            {
+                ScissorTestEnable = true,
+                SlopeScaleDepthBias = 100.0f,
+                CullMode = CullMode.None
+            };
 
             QuadIndices = new Int16[MAX_QUADS * 6];
             for (int i = 0; i < MAX_QUADS; ++i)
@@ -194,10 +196,7 @@ namespace Mojo.Graphics
 
         public Vector2 TransformPoint(Vector2 v)
         {
-            Vector2 dst = new Vector2();
-            dst.X = v.X * _ix + v.Y * _jx + _tx;
-            dst.Y = v.X * _iy + v.Y * _jy + _ty;
-            return dst;
+            return new Vector2(v.X * _ix + v.Y * _jx + _tx, v.X * _iy + v.Y * _jy + _ty);
         }
 
         public void Reset()
@@ -311,13 +310,14 @@ namespace Mojo.Graphics
     {
         public static BlendState CreateBlendState(BlendFunction func, Blend colorSrc, Blend alphaSrc, Blend colorDst, Blend alphaDst)
         {
-            var blendState = new BlendState();
-            blendState.ColorBlendFunction = func;
-            blendState.ColorSourceBlend = colorSrc;
-            blendState.AlphaSourceBlend = alphaSrc;
-            blendState.ColorDestinationBlend = colorDst;
-            blendState.AlphaDestinationBlend = alphaDst;
-            return blendState;
+            return new BlendState()
+            {
+                ColorBlendFunction = func,
+                ColorSourceBlend = colorSrc,
+                AlphaSourceBlend = alphaSrc,
+                ColorDestinationBlend = colorDst,
+                AlphaDestinationBlend = alphaDst
+            };
         }
 
         public static BlendState BlendShadow = new BlendState

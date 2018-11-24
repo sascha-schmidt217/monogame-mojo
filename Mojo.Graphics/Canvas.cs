@@ -29,6 +29,7 @@ namespace Mojo.Graphics
         None,
         Opaque,
         Alpha,
+        Premultiplied,
         InverseAlpha,
         Additive,
         Subtract,
@@ -53,7 +54,7 @@ namespace Mojo.Graphics
     public class Canvas : IDisposable
     {
         // internal state
-        private bool initialized = false;
+        private readonly bool initialized = false;
         private Stack<Transform2D> _matrixStack = new Stack<Transform2D>();
         private Transform2D _transform = new Transform2D();
         private bool _lighting = false;
@@ -392,7 +393,7 @@ namespace Mojo.Graphics
 
             _diffuseMap = Global.CreateRenderImage(Width, Height, ref _diffuseMap, RenderTargetUsage.PreserveContents);
             _normalMap = Global.CreateRenderImage(Width, Height, ref _normalMap);
-            _specularMap = Global.CreateRenderImage(Width, Height, ref _specularMap, RenderTargetUsage.DiscardContents, SurfaceFormat.Alpha8);
+            _specularMap = Global.CreateRenderImage(Width, Height, ref _specularMap, RenderTargetUsage.DiscardContents);
 
             if (refDiffuse != _diffuseMap || refNormal != _normalMap)
             {
@@ -409,7 +410,7 @@ namespace Mojo.Graphics
             Device.SetRenderTarget(_diffuseMap);
             Device.Clear(Color.Black);
             Device.SetRenderTarget(_normalMap);
-            Device.Clear(new Color(0.5f, 0.5f, 0));
+            Device.Clear(new Color(0.5f, 0.5f, 0, 1.0f));
             Device.SetRenderTarget(_specularMap);
             Device.Clear(Color.TransparentBlack);// Clear Alpha, because SurafceFprmat is Alpha8
 
@@ -442,13 +443,17 @@ namespace Mojo.Graphics
             Color = Color.White;
             Effect = _lightingEffect;
             BlendMode = BlendMode.Opaque;
-            Device.SamplerStates[0] = SamplerState.LinearClamp;
+           
             Alpha = 1;
 
             _lightingEffect.Parameters["WorldViewProjection"].SetValue(WorldViewProj);
             _lightingEffect.Parameters["DiffuseSampler"].SetValue(_diffuseMap);
             _lightingEffect.Parameters["LightmapSampler"].SetValue(lightmap);
             _lightingEffect.Parameters["SpecularMapSampler"].SetValue(_specularMap);
+
+            Device.SamplerStates[0] = SamplerState.PointClamp;
+            Device.SamplerStates[1] = SamplerState.PointClamp;
+            Device.SamplerStates[2] = SamplerState.PointClamp;
 
             DrawImage(_diffuseMap, 0, 0 );
 
@@ -459,31 +464,38 @@ namespace Mojo.Graphics
 
             if (ShowGBuffer)
             {
+                Device.SamplerStates[0] = SamplerState.PointClamp;
                 var filter = TextureFilteringEnabled;
                 TextureFilteringEnabled = true;
 
                 BlendMode = BlendMode.Opaque;
+                // Diffuse
                 DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
+
+                // Normal
                 DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
 
+                // specular map
+                Color = Color.White;
+                BlendMode = BlendMode.Opaque;
+                DrawImage(_specularMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
+
+                // light
                 if (lightmap != null)
                 {
                     BlendMode = BlendMode.Alpha;
                     Color = Color.Black;
                     DrawRect(_normalMap.Width * 0.6f, 0, _normalMap.Width * 0.2f, _normalMap.Height * 0.2f);
                     Color = Color.White;
+
+                    // specular reflection factor
                     var lightmapImg = new Image(lightmap);
                     DrawImage(lightmapImg, _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
+
+                    // lightmap
                     BlendMode = BlendMode.Opaque;
                     DrawImage(lightmapImg, _normalMap.Width * 0.8f, 0, 0.2f, 0.2f, 0);
                 }
-
-                BlendMode = BlendMode.Opaque;
-                DrawRect(_normalMap.Width * 0.4f, 0, _normalMap.Width * 0.2f, _normalMap.Height * 0.2f);
-                Color = Color.White;
-                BlendMode = BlendMode.InverseAlpha;
-                DrawImage(_specularMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
-                
 
                 Flush();
                 TextureFilteringEnabled = filter;
@@ -580,8 +592,7 @@ namespace Mojo.Graphics
             set
             {
                 _internalColor = value;
-                _color = new Color(value.R, value.G, value.B);
-                _color.A = (byte)(_alpha * 255);
+                _color = new Color(value, _alpha);
             }
         }
 
@@ -1043,31 +1054,31 @@ namespace Mojo.Graphics
         /// <summary>
         /// Adds a shadow caster to the canvas.
         /// </summary>
-        public void AddShadowCaster(Vector2[] vertices, float x, float y)
+        public void AddShadowCaster(Vector2[] vertices, float x, float y, ShadowType shadowType = ShadowType.Illuminated)
         {
-            LightRenderer.AddShadowCaster(Matrix, vertices, x, y);
+            LightRenderer.AddShadowCaster(Matrix, vertices, x, y, shadowType);
         }
 
         /// <summary>
         /// Adds a shadow caster to the canvas.
         /// </summary>
-        public void AddShadowCaster(Vector2[] vertices, float x, float y, float rz)
+        public void AddShadowCaster(Vector2[] vertices, float x, float y, float rz, ShadowType shadowType = ShadowType.Illuminated)
         {
             PushMatrix();
             Translate(x, y);
             Rotate(rz);
-            AddShadowCaster(vertices, 0, 0);
+            AddShadowCaster(vertices, 0, 0, shadowType);
             PopMatrix();
         }
 
         /// <summary>
         /// Adds a shadow caster to the canvas.
         /// </summary>
-        public void AddShadowCaster(Vector2[] vertices, float x, float y, float rz, float sx, float sy)
+        public void AddShadowCaster(Vector2[] vertices, float x, float y, float rz, float sx, float sy, ShadowType shadowType = ShadowType.Illuminated)
         {
             PushMatrix();
             TranslateRotateScale(x, y, sx, sy, rz);
-            AddShadowCaster(vertices, 0,0);
+            AddShadowCaster(vertices, 0,0, shadowType);
             PopMatrix();
         }
 
@@ -1147,8 +1158,10 @@ namespace Mojo.Graphics
             _drawBuffer = new Buffer();
             _defaultBuffer = _drawBuffer;
 
-            DefaultEffect = new BasicEffect(Device);
-            DefaultEffect.VertexColorEnabled = true;
+            DefaultEffect = new BasicEffect(Device)
+            {
+                VertexColorEnabled = true
+            };
             Effect = DefaultEffect;
 
             _bumpEffect = Global.Content.Load<Effect>("Effects/bump");
@@ -1275,20 +1288,28 @@ namespace Mojo.Graphics
                 }
                 else if( opEffect == _bumpEffect)
                 {
-
-                    _pDiffuseTexture.SetValue(op.img._texture);
-                    _pNormalTexture.SetValue(op.img._normal ?? Global.DefaultNormal);
-
-                    if(op.img._specular == null)
+                    if(op.img == null)
                     {
-                        _pSpecularTexture.SetValue(op.img._specular);
-                        var specularFactor = Math.Max(0, Math.Min(255, (int)(op.img.Specularity * 255)));
-                        _pSpecularTexture.SetValue(Global.DefaultSpecular[specularFactor]);
+                        _bumpEffect.Parameters["TextureEnabled"].SetValue(0.0f);
                     }
                     else
                     {
-                        _pSpecularTexture.SetValue(op.img._specular);
+                        _bumpEffect.Parameters["TextureEnabled"].SetValue(1.0f);
+                        _pDiffuseTexture.SetValue(op.img._texture);
+                        _pNormalTexture.SetValue(op.img._normal ?? Global.DefaultNormal);
+
+                        if (op.img._specular == null)
+                        {
+                            _pSpecularTexture.SetValue(op.img._specular);
+                            var specularFactor = Math.Max(0, Math.Min(255, (int)(op.img.Specularity * 255)));
+                            _pSpecularTexture.SetValue(Global.DefaultSpecular[specularFactor]);
+                        }
+                        else
+                        {
+                            _pSpecularTexture.SetValue(op.img._specular);
+                        }
                     }
+                   
                 }
 
                 if (blendMode != op.blendMode)
@@ -1297,14 +1318,7 @@ namespace Mojo.Graphics
                     SetInternalBlendMode(blendMode);
                 }
 
-                if (false)//_drawBuffer.VertexBufferEnabled)
-                {
-                    RenderVertexBuffer(_drawBuffer, op.primType, opEffect, op.primOffset, op.primCount * op.primType);
-                }
-                else
-                {
-                    Render(_drawBuffer, op.primType, opEffect, op.primOffset, op.primCount * op.primType);
-                }
+                Render(_drawBuffer, op.primType, opEffect, op.primOffset, op.primCount * op.primType);
             }
         }
 

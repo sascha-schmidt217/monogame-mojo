@@ -79,13 +79,12 @@ namespace Mojo.Graphics
         private List<ShadowOp> _shadowOps = new List<ShadowOp>(1024);
         private List<Vector2> _shadowVertices = new List<Vector2>(16536);
 
-        private MojoVertex[] _lightVertices = new MojoVertex[4];
-        private MojoVertex[] _shadowCasterVertices = new MojoVertex[4096];
+        private readonly MojoVertex[] _lightVertices = new MojoVertex[4];
+        private readonly MojoVertex[] _shadowCasterVertices = new MojoVertex[4096];
 
         private Matrix _projection;
         private BasicEffect _defaultEffect;
-        private PointLightEffect _pointLightEffect;
-        private SpotLightEffect _spotLightEffect;
+        private LightEffect _lightEffect;
         private Image _lightmap;
         private Image _shadowmap;
 
@@ -94,8 +93,7 @@ namespace Mojo.Graphics
 
         public LightRenderer()
         {
-            _spotLightEffect = new SpotLightEffect(Global.Content.Load<Effect>("Effects/spot_light"));
-            _pointLightEffect = new PointLightEffect(Global.Content.Load<Effect>("Effects/point_light"));
+            _lightEffect = new LightEffect(Global.Content.Load<Effect>("Effects/light"));
             _defaultEffect = new BasicEffect(Global.Device);
             _shadowRenderer.OnLoad();           
         }
@@ -107,11 +105,13 @@ namespace Mojo.Graphics
 
         public void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated)
         {
-            var op = new ShadowOp();
-            op.ShadowType = shadowType;
-            op.Offset = _shadowVertices.Count;
-            op.Length = vertices.Length;
-           
+            var op = new ShadowOp()
+            {
+                ShadowType = shadowType,
+                 Offset = _shadowVertices.Count,
+                Length = vertices.Length
+            };
+
             _shadowOps.Add(op);
 
             unsafe
@@ -273,26 +273,25 @@ namespace Mojo.Graphics
                 CreateImage(_width, _height, ref _lightmap);
                 _lightmap.RenderTarget.Name = "_lightmap";
 
-                _spotLightEffect.InvTexSize = new Vector2(1.0f / _width, 1.0f / _height);
-                _pointLightEffect.InvTexSize = new Vector2(1.0f / _width, 1.0f / _height);
+                _lightEffect.InvTexSize = new Vector2(1.0f / _width, 1.0f / _height);
             }
         }
 
         public RenderTarget2D Render(RenderTarget2D normapMap, Color ambientColor, bool shadowEnabled, bool normalmapEnabled)
         {
+            _lightEffect.ShadowEnabled = shadowEnabled;
+            _lightEffect.NormalmapEnabled = normalmapEnabled;
+            _lightEffect.WorldViewProj = _projection;
+
             if (shadowEnabled)
             {
                 _shadowRenderer.Projection = _projection;
                 _defaultEffect.Projection = _projection;
             }
 
-            _spotLightEffect.NormalmapEnabled = normalmapEnabled;
-            _pointLightEffect.NormalmapEnabled = normalmapEnabled;
-
             if (normalmapEnabled)
             {
-                _spotLightEffect.Normalmap = normapMap;
-                _pointLightEffect.Normalmap = normapMap;
+                _lightEffect.Normalmap = normapMap;
             }
 
             // fill lightmap with ambient color
@@ -306,23 +305,23 @@ namespace Mojo.Graphics
             if (shadowEnabled)
             {
                 // render pointlights 
+                _lightEffect.UseSpotLight = false;
                 foreach (var op in _pointLights)
                 {
                     DrawShadows(op.Location, op.Size, op.Range * op.Range);
 
-                    _pointLightEffect.Shadowmap = _shadowmap;
-                    _pointLightEffect.WorldViewProj = _projection;
-  
+                    _lightEffect.Shadowmap = _shadowmap;
+
                     DrawPointLight(op as PointLightOp);
                 }
 
                 // render spotlights
+                _lightEffect.UseSpotLight = true;
                 foreach (var op in _spotLights)
                 {
                     DrawShadows(op.Location, op.Size, op.Range * op.Range);
 
-                    _spotLightEffect.Shadowmap = _shadowmap;
-                    _spotLightEffect.WorldViewProj = _projection;
+                    _lightEffect.Shadowmap = _shadowmap;
 
                     DrawSpotLight(op as SpotLightOp);
                 }
@@ -330,20 +329,14 @@ namespace Mojo.Graphics
             else
             {
                 // render pointlights 
-
-                _pointLightEffect.Shadowmap = _shadowmap;
-                _pointLightEffect.WorldViewProj = _projection;
-
+                _lightEffect.UseSpotLight = false;
                 foreach (var op in _pointLights)
                 {
                     DrawPointLight(op as PointLightOp);
                 }
 
                 // render spotlights
-
-                _spotLightEffect.Shadowmap = _shadowmap;
-                _spotLightEffect.WorldViewProj = _projection;
-
+                _lightEffect.UseSpotLight = true;
                 foreach (var op in _spotLights)
                 {
                     DrawSpotLight(op as SpotLightOp);
@@ -365,11 +358,11 @@ namespace Mojo.Graphics
 
         private void DrawPointLight(PointLightOp op)
         {
-            _pointLightEffect.Range = op.Range;
-            _pointLightEffect.Intensity = op.Intensity;
-            _pointLightEffect.Position = new Vector2(op.Location.X, op.Location.Y);
-            _pointLightEffect.Depth = op.Depth;
-            _pointLightEffect.CurrentTechnique.Passes.First().Apply();
+            _lightEffect.Range = op.Range;
+            _lightEffect.Intensity = op.Intensity;
+            _lightEffect.Position = new Vector2(op.Location.X, op.Location.Y);
+            _lightEffect.Depth = op.Depth;
+            _lightEffect.CurrentTechnique.Passes.First().Apply();
 
             unsafe
             {
@@ -391,14 +384,14 @@ namespace Mojo.Graphics
 
         private void DrawSpotLight(SpotLightOp op)
         {
-            _spotLightEffect.Range = op.Range;
-            _spotLightEffect.Intensity = op.Intensity;
-            _spotLightEffect.Position = new Vector2(op.Location.X, op.Location.Y);
-            _spotLightEffect.Inner = op.Inner;
-            _spotLightEffect.Outer = op.Outer;
-            _spotLightEffect.LightDir = op.Dir;
-            _spotLightEffect.CurrentTechnique.Passes.First().Apply();
-            _spotLightEffect.Depth = op.Depth;
+            _lightEffect.Range = op.Range;
+            _lightEffect.Intensity = op.Intensity;
+            _lightEffect.Position = new Vector2(op.Location.X, op.Location.Y);
+            _lightEffect.Inner = op.Inner;
+            _lightEffect.Outer = op.Outer;
+            _lightEffect.LightDir = op.Dir;
+            _lightEffect.Depth = op.Depth;
+            _lightEffect.CurrentTechnique.Passes.First().Apply();
 
             var transform = op.Transform;
             transform.Translate(0, -op.Range);

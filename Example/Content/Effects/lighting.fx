@@ -46,7 +46,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	float4 lighting = tex2D(LightmapSampler, input.TexCoord0);
 	float4 specular = tex2D(SpecularMapSampler, input.TexCoord0);
 
-	float4 color = float4(diffuse.rgb * lighting.rgb + lighting.a * specular.a, 1.0f);
+	float4 color = float4(diffuse.rgb * lighting.rgb + lighting.a * specular.r, 1.0f);
 	return color;
 }
 

@@ -14,7 +14,6 @@ namespace Mojo.Graphics
         const float EXTRUDE = 1024;
 
         private Vector2 lv = new Vector2();
-        private Color c = new Color(Color.Black, 1.0f);
         private BasicEffect DefaultEffect;
         private MojoVertex[] _buffer;
 
@@ -36,7 +35,7 @@ namespace Mojo.Graphics
             _buffer = new MojoVertex[65536];
             for(int i = 0; i< _buffer.Length;++i)
             {
-                _buffer[i].Color = c;
+                _buffer[i].Color = Color.Black;
             }
         }
 
@@ -62,7 +61,7 @@ namespace Mojo.Graphics
                 var pv = tv;
                 tv = _shadowVertices[vert0 + i];
             
-                if (is_back_facing(lv, pv, tv))
+                if (IsBackFacing(lv, pv, tv))
                     continue;
             
                 var pv2 = pv + Vector2.Normalize(pv - lv) * EXTRUDE;
@@ -87,7 +86,7 @@ namespace Mojo.Graphics
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool is_back_facing(Vector2 lv, Vector2 pv, Vector2 tv)
+        private bool IsBackFacing(Vector2 lv, Vector2 pv, Vector2 tv)
         {
             // The normal for the edge
             var dv = tv - pv;

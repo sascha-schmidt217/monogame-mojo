@@ -4,6 +4,10 @@ using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
 using Mojo.Graphics;
 
+// TODO: 
+// - Canvas.AutoPrimitiveShadow for auto 'ShadowCaster creation for primitives?
+// - Canvas.Specularity Property for primitives specular?
+
 namespace Example
 {
     public class Game1 : MojoGame
@@ -26,14 +30,18 @@ namespace Example
             base.LoadContent();
             base.LightingEnabled = true;
 
-            _floor = new Image("Images/tiles", "Images/tiles_n" , "Images/tiles_s");
-            _floor.Specularity = 1;
-            _logo = new Image("Images/logo", "Images/logo_n", 24,24);
+            _floor = new Image("Images/tiles", "Images/tiles_n")
+            {
+                Specularity = 1
+            };
+
+            _logo = new Image("Images/logo", "Images/logo_n", 24, 24);
             _logo.Specularity = 1;
-            _logo2 = new Image("Images/logo2", "Images/logo2_n", 24,24);
-            _logo2.Specularity = 1;
             _logo.ShadowCaster = new ShadowCaster(_logo.Width / 2, 24);
-            _logo2.ShadowCaster = new ShadowCaster(new Rectangle(-_logo2.Width/2, -_logo2.Height/2, _logo2.Width, _logo2.Height));
+
+            _logo2 = new Image("Images/logo2", "Images/logo2_n", 24, 24);
+            _logo2.Specularity = 1;
+            _logo2.ShadowCaster = new ShadowCaster(new Rectangle(-_logo2.Width / 2, -_logo2.Height / 2, _logo2.Width, _logo2.Height));
         }
 
         private float _lightDepth = 96.0f;
@@ -92,7 +100,7 @@ namespace Example
         protected override void Draw(GameTime gameTime)
         {
             var mouse = Mouse.GetState();
-          
+
             _viewRot += 0.004f;
             _lightRot += 0.02f;
 
@@ -100,8 +108,9 @@ namespace Example
 
             // Set Ambient color used for lighting
             Canvas.TextureFilteringEnabled = true;
-            Canvas.AmbientColor = new Color(48,48,48);
+            Canvas.AmbientColor = new Color(48, 48, 48);
             Canvas.Clear(Color.Red);
+            Canvas.BlendMode = BlendMode.Alpha;
 
             // Draw background
             Canvas.Color = Color.White;
@@ -118,6 +127,8 @@ namespace Example
 
             // Draw sprites
             int k = 0;
+            Canvas.BlendMode = BlendMode.Alpha;
+
             for (float an = 0; an < System.Math.PI * 2; an += (float)System.Math.PI * 2 / 8)
             {
                 float xx = Width / 2 + (float)System.Math.Cos(an) * 128;
@@ -125,9 +136,23 @@ namespace Example
                 Canvas.DrawImage((k++) % 2 == 0 ? _logo : _logo2, xx, yy);
             }
 
+            // shadow casting primitive
+            Canvas.Color = Color.Green;
+            Canvas.DrawRect(64, 64, 64, 64);
+            Canvas.AddShadowCaster(new Vector2[] 
+            {
+                new Vector2(0.0f, 0.0f),
+                new Vector2(64.0f, 0.0f),
+                new Vector2(64.0f, 64.0f),
+                new Vector2(0.0f, 64.0f)
+            }, 64, 64, _shadowType);
+
             // add light
+            Canvas.Color = Color.White;
             Canvas.AddPointLight( mouse.X, mouse.Y, 512, 1,12, _lightDepth);
-          
+            Canvas.AddSpotLight(Width / 2, Height / 2, _lightRot * RAD_TO_DEG, 300, 15, 35);
+
+
             Canvas.EndLighting();
             base.Draw(gameTime);
         }
