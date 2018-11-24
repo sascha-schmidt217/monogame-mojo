@@ -30,7 +30,7 @@ namespace Example
             base.LoadContent();
             base.LightingEnabled = true;
 
-            _floor = new Image("Images/tiles", "Images/tiles_n")
+            _floor = new Image("Images/tiles", "Images/tiles_n", "Images/tiles_s")
             {
                 Specularity = 1
             };
@@ -149,7 +149,7 @@ namespace Example
 
             // add light
             Canvas.Color = Color.White;
-            Canvas.AddPointLight( mouse.X, mouse.Y, 512, 1,12, _lightDepth);
+            Canvas.AddPointLight( mouse.X, mouse.Y, 320, 1,12, _lightDepth);
             Canvas.AddSpotLight(Width / 2, Height / 2, _lightRot * RAD_TO_DEG, 300, 15, 35);
 
 

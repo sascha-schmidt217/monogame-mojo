@@ -83,6 +83,7 @@
   <ItemGroup>
     <Compile Include="Buffer.cs" />
     <Compile Include="Canvas.cs" />
+    <Compile Include="DefaultEffect.cs" />
     <Compile Include="Image.cs" />
     <Compile Include="LightEffect.cs" />
     <Compile Include="LightRenderer.cs" />

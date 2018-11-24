@@ -78,15 +78,12 @@ namespace Mojo.Graphics
         // currently active shader when not in lighting mode
         private Effect _currentEffect;
 
-        // shader that combines lighting and diffuse
+        // shader that combines lighting and diffuse, 
+        // in order to create the final image
         private Effect _lightingEffect;
 
         // shader used to render to G-Buffer
-        private Effect _bumpEffect;
-        private EffectParameter _pWorldViewProjection;
-        private EffectParameter _pDiffuseTexture;
-        private EffectParameter _pNormalTexture;
-        private EffectParameter _pSpecularTexture;
+        private DefaultEffect _defaultEffect;
 
         // light renderer: G-Buffer => Lighting 
         private ILightRenderer _lightRenderer;
@@ -98,7 +95,6 @@ namespace Mojo.Graphics
         ///////////////////////////////////////////////
         ///
         public GraphicsDevice Device { get; private set; }
-        public BasicEffect DefaultEffect { get; private set; }
         public int Width { get; private set; }
         public int Height { get; private set; }
         public bool LineSmooth { get; set; } = false;
@@ -132,9 +128,14 @@ namespace Mojo.Graphics
         public bool ShadowEnabled { get; set; } = true;
 
         /// <summary>
-        /// Enables or disables normal mapping.. TODO
+        /// Enables or disables normal mapping..
         /// </summary>
         public bool NormalmapEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Enables or disables specular mapping..
+        /// </summary>
+        public bool SpecularEnabled { get; set; } = true;
 
         /// <summary>
         /// The current world view projection matrix.
@@ -231,7 +232,7 @@ namespace Mojo.Graphics
 
                     if (value == null)
                     {
-                        _currentEffect = DefaultEffect;
+                        _currentEffect = _defaultEffect;
                     }
                     else
                     {
@@ -526,28 +527,9 @@ namespace Mojo.Graphics
             BlendMode = BlendMode.Alpha;
             Color = Color.White;
             Alpha = 1.0f;
-            Effect = DefaultEffect;
             RenderTarget = null;
-
-            Effect.Parameters["WorldViewProj"].SetValue(WorldViewProj); // Add matrix dirty flag^
-
-            if(_lighting)
-            {
-                if (NormalmapEnabled)
-                {
-                    Effect = _bumpEffect;
-                    _pWorldViewProjection.SetValue(WorldViewProj);
-                }
-                else
-                {
-                    Effect = DefaultEffect;
-                }
-            }
-
-            if(Effect == DefaultEffect)
-            {
-                DefaultEffect.Projection = WorldViewProj;
-            }
+            _defaultEffect.WorldViewProjection = WorldViewProj;
+            Effect = _defaultEffect;
         }
 
         
@@ -692,7 +674,7 @@ namespace Mojo.Graphics
 
                 unsafe
                 {
-                    var ptr = AddDrawOp((int)PrimType.Quad, 1, null, DefaultEffect, BlendMode.Opaque);
+                    var ptr = AddDrawOp((int)PrimType.Quad, 1, null, _defaultEffect, BlendMode.Opaque);
 
                     ptr[0].Transform(x + 0, y + 0, c);
                     ptr[1].Transform(x + w, y + 0, c);
@@ -1020,7 +1002,7 @@ namespace Mojo.Graphics
                         float u1 = (bounds.X + bounds.Width) * scale_x;
                         float v1 = (bounds.Y + bounds.Height) * scale_y;
 
-                        var vertex = AddDrawOp((int)PrimType.Quad, 1, _fontImage, DefaultEffect, _blendMode);
+                        var vertex = AddDrawOp((int)PrimType.Quad, 1, _fontImage, _defaultEffect, _blendMode);
                         {
                             (vertex + 0)->Transform(px, py, u0, v0, _transform, _color);
                             (vertex + 1)->Transform(px + width, py, u1, v0, _transform, _color);
@@ -1158,17 +1140,8 @@ namespace Mojo.Graphics
             _drawBuffer = new Buffer();
             _defaultBuffer = _drawBuffer;
 
-            DefaultEffect = new BasicEffect(Device)
-            {
-                VertexColorEnabled = true
-            };
-            Effect = DefaultEffect;
-
-            _bumpEffect = Global.Content.Load<Effect>("Effects/bump");
-            _pWorldViewProjection = _bumpEffect.Parameters["WorldViewProjection"];
-            _pDiffuseTexture = _bumpEffect.Parameters["DiffuseSampler"];
-            _pNormalTexture = _bumpEffect.Parameters["NormalSampler"];
-            _pSpecularTexture = _bumpEffect.Parameters["SpecularSampler"];
+            _defaultEffect = new DefaultEffect(Global.Content.Load<Effect>("Effects/bump"));
+            Effect = _defaultEffect;
 
             _lightingEffect = Global.Content.Load<Effect>("Effects/lighting");
 
@@ -1258,7 +1231,7 @@ namespace Mojo.Graphics
             if (Height != last_height || Width != last_width)
             {
                 WorldViewProj = Microsoft.Xna.Framework.Matrix.CreateOrthographicOffCenter(+.0f, Width + .0f, Height + .0f, +.0f, 0, 1);
-                DefaultEffect.Projection = WorldViewProj;
+                _defaultEffect.WorldViewProjection = WorldViewProj;
                 SetScissor(0, 0, Width, Height);
             }
 
@@ -1274,39 +1247,34 @@ namespace Mojo.Graphics
             {
                 var opEffect = op.effect;
 
-                if (opEffect == DefaultEffect)
-                {
-                    if (op.img != null)
-                    {
-                        DefaultEffect.TextureEnabled = true;
-                        DefaultEffect.Parameters["Texture"].SetValue(op.img._texture);
-                    }
-                    else
-                    {
-                        DefaultEffect.TextureEnabled = false;
-                    }
-                }
-                else if( opEffect == _bumpEffect)
+                if( opEffect == _defaultEffect)
                 {
                     if(op.img == null)
                     {
-                        _bumpEffect.Parameters["TextureEnabled"].SetValue(0.0f);
+                        _defaultEffect.TextureEnabled = false;
+                        _defaultEffect.SpecularEnabled = SpecularEnabled;
+                        _defaultEffect.NormalEnabled = NormalmapEnabled;
                     }
                     else
                     {
-                        _bumpEffect.Parameters["TextureEnabled"].SetValue(1.0f);
-                        _pDiffuseTexture.SetValue(op.img._texture);
-                        _pNormalTexture.SetValue(op.img._normal ?? Global.DefaultNormal);
+                        _defaultEffect.TextureEnabled = true;
+                        _defaultEffect.SpecularEnabled = SpecularEnabled;
+                        _defaultEffect.NormalEnabled = NormalmapEnabled;
+                        _defaultEffect.Texture = op.img._texture;
+
+                        if(NormalmapEnabled)
+                        {
+                            _defaultEffect.Normalmap = op.img._normal ?? Global.DefaultNormal;
+                        }
 
                         if (op.img._specular == null)
                         {
-                            _pSpecularTexture.SetValue(op.img._specular);
                             var specularFactor = Math.Max(0, Math.Min(255, (int)(op.img.Specularity * 255)));
-                            _pSpecularTexture.SetValue(Global.DefaultSpecular[specularFactor]);
+                            _defaultEffect.Specularmap = Global.DefaultSpecular[specularFactor];
                         }
                         else
                         {
-                            _pSpecularTexture.SetValue(op.img._specular);
+                            _defaultEffect.Specularmap = op.img._specular;
                         }
                     }
                    
@@ -1454,7 +1422,7 @@ namespace Mojo.Graphics
             {
                 if (disposing)
                 {
-                    DefaultEffect.Dispose();
+                    _defaultEffect.Dispose();
                 }
                 disposedValue = true;
             }
