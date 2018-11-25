@@ -43,7 +43,7 @@ namespace Mojo.Graphics
             _pLightPosition = _shadowEffect.Parameters["LightPosition"];
             _LightRadius = _shadowEffect.Parameters["LightRadius"];
 
-            _buffer = new MojoVertex[65536];
+            _buffer = new MojoVertex[65536/4];
             for(int i = 0; i < _buffer.Length;i+=4)
             {
                 _buffer[i+0].Position = _shadow0;
@@ -61,11 +61,11 @@ namespace Mojo.Graphics
         }
 
 
-        public void AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
+        public bool AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
         {
             if((ShadowCount + length) *4 >= ShadowBuffer.Length)
             {
-                return;
+                return false;
             }
 
             unsafe
@@ -93,6 +93,8 @@ namespace Mojo.Graphics
                     prevPoint = currentPoint;
                 }
             }
+
+            return true;
         }
     }
 }

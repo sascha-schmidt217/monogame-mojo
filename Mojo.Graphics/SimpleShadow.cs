@@ -45,11 +45,11 @@ namespace Mojo.Graphics
             lv = location;
         }
 
-        public void AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
+        public bool AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
         {
             if ((ShadowCount + length) * 4 >= ShadowBuffer.Length)
             {
-                return;
+                return false;
             }
 
             var vert0 = start;
@@ -83,6 +83,7 @@ namespace Mojo.Graphics
                 }
             }
 
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -40,8 +40,16 @@ namespace Mojo.Graphics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Transform(float x0, float y0, float u0, float v0, float u1, float v1, Transform2D t, Color color)
         {
-            Position.X = x0 * t._ix + y0 * t._jx + t._tx;
-            Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
+            if (t._tFormed)
+            {
+                Position.X = x0 * t._ix + y0 * t._jx + t._tx;
+                Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
+            }
+            else
+            {
+                Position.X = x0;
+                Position.Y = y0;
+            }
             Tex0.X = u0;
             Tex0.Y = v0;
             Tex1.X = u1;
@@ -52,8 +60,16 @@ namespace Mojo.Graphics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Transform(float x0, float y0, float u0, float v0, Transform2D t, Color color)
         {
-            Position.X = x0 * t._ix + y0 * t._jx + t._tx;
-            Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
+            if (t._tFormed)
+            {
+                Position.X = x0 * t._ix + y0 * t._jx + t._tx;
+                Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
+            }
+            else
+            {
+                Position.X = x0;
+                Position.Y = y0;
+            }
             Tex0.X = u0;
             Tex0.Y = v0;
             Tex1.X = t._tanX;
@@ -64,8 +80,16 @@ namespace Mojo.Graphics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void TransformPixelPerfect(float x0, float y0, float u0, float v0, Transform2D t, Color color)
         {
-            Position.X = (int)(0.5f + x0 * t._ix + y0 * t._jx + t._tx);
-            Position.Y = (int)(0.5f + x0 * t._iy + y0 * t._jy + t._ty);
+            if (t._tFormed)
+            {
+                Position.X = (int)(0.5f + x0 * t._ix + y0 * t._jx + t._tx);
+                Position.Y = (int)(0.5f + x0 * t._iy + y0 * t._jy + t._ty);
+            }
+            else
+            {
+                Position.X = x0;
+                Position.Y = y0;
+            }
             Tex0.X = u0;
             Tex0.Y = v0;
             Tex1.X = t._tanX;
@@ -77,8 +101,16 @@ namespace Mojo.Graphics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Transform(float x0, float y0, Transform2D t, Color color)
         {
-            Position.X = x0 * t._ix + y0 * t._jx + t._tx;
-            Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
+            if (t._tFormed)
+            {
+                Position.X = x0 * t._ix + y0 * t._jx + t._tx;
+                Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
+            }
+            else
+            {
+                Position.X = x0;
+                Position.Y = y0;
+            }
             Color = color;
         }
 
