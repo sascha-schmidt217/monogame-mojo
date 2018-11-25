@@ -90,6 +90,7 @@
     <Compile Include="mojo.cs" />
     <Compile Include="MojoGame.cs" />
     <Compile Include="PenumbraShadow.cs" />
+    <Compile Include="PostEffect.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleShadow.cs" />
   </ItemGroup>

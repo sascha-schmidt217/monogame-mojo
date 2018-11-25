@@ -431,6 +431,8 @@ namespace Mojo.Graphics
             RenderTarget = _diffuseMap;
         }
 
+        private PostEffectPipeline _PostEffectPipeline = new PostEffectPipeline();
+
         /// <summary>
         ///  Renders lighting and ends lighting mode.
         /// </summary>
@@ -453,7 +455,7 @@ namespace Mojo.Graphics
             //
             PushMatrix();
             ResetMatrix();
-            RenderTarget = null;
+            RenderTarget = _PostEffectPipeline.GetRenderTarget(_diffuseMap);
             Color = Color.White;
             Effect = _lightingEffect;
             BlendMode = BlendMode.Opaque;
@@ -470,53 +472,57 @@ namespace Mojo.Graphics
             Device.SamplerStates[2] = SamplerState.PointClamp;
 
             DrawImage(_diffuseMap, 0, 0 );
-
-            // Show
-            //
             Flush();
-            Effect = null;
+
+            _PostEffectPipeline.Render(this);
 
             if (ShowGBuffer)
             {
-                Device.SamplerStates[0] = SamplerState.PointClamp;
-                var filter = TextureFilteringEnabled;
-                TextureFilteringEnabled = true;
-
-                BlendMode = BlendMode.Opaque;
-                // Diffuse
-                DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
-
-                // Normal
-                DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
-
-                // specular map
-                Color = Color.White;
-                BlendMode = BlendMode.Opaque;
-                DrawImage(_specularMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
-
-                // light
-                if (lightmap != null)
-                {
-                    BlendMode = BlendMode.Alpha;
-                    Color = Color.Black;
-                    DrawRect(_normalMap.Width * 0.6f, 0, _normalMap.Width * 0.2f, _normalMap.Height * 0.2f);
-                    Color = Color.White;
-
-                    // specular reflection factor
-                    var lightmapImg = new Image(lightmap);
-                    DrawImage(lightmapImg, _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
-
-                    // lightmap
-                    BlendMode = BlendMode.Opaque;
-                    DrawImage(lightmapImg, _normalMap.Width * 0.8f, 0, 0.2f, 0.2f, 0);
-                }
-
-                Flush();
-                TextureFilteringEnabled = filter;
+                RenderGBuffer(lightmap);
             }
 
             PopMatrix();
         }
+
+        private void RenderGBuffer(RenderTarget2D lightmap)
+        {
+            Device.SamplerStates[0] = SamplerState.PointClamp;
+            var filter = TextureFilteringEnabled;
+            TextureFilteringEnabled = true;
+
+            BlendMode = BlendMode.Opaque;
+            // Diffuse
+            DrawImage(_diffuseMap, 0, 0, 0.2f, 0.2f, 0);
+
+            // Normal
+            DrawImage(_normalMap, _normalMap.Width * 0.2f, 0, 0.2f, 0.2f, 0);
+
+            // specular map
+            Color = Color.White;
+            BlendMode = BlendMode.Opaque;
+            DrawImage(_specularMap, _normalMap.Width * 0.4f, 0, 0.2f, 0.2f, 0);
+
+            // light
+            if (lightmap != null)
+            {
+                BlendMode = BlendMode.Alpha;
+                Color = Color.Black;
+                DrawRect(_normalMap.Width * 0.6f, 0, _normalMap.Width * 0.2f, _normalMap.Height * 0.2f);
+                Color = Color.White;
+
+                // specular reflection factor
+                var lightmapImg = new Image(lightmap);
+                DrawImage(lightmapImg, _normalMap.Width * 0.6f, 0, 0.2f, 0.2f, 0);
+
+                // lightmap
+                BlendMode = BlendMode.Opaque;
+                DrawImage(lightmapImg, _normalMap.Width * 0.8f, 0, 0.2f, 0.2f, 0);
+            }
+
+            Flush();
+            TextureFilteringEnabled = filter;
+        }
+
 
         public void Begin()
         {

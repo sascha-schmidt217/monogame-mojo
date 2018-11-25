@@ -122,24 +122,30 @@ float4 PSPointLightNormalShadow(VertexShaderOutput input) : COLOR
 float4 PSPointLightNormal(VertexShaderOutput input) : COLOR
 {
 	float2 light_dir = input.light_dir;
-	float alpha = PointLightIntensity(light_dir, radius, intensity);
+	float factor = PointLightIntensity(light_dir, radius, intensity);
 	float4 normal = GetNormalVector(input.TexCoord0);
 	Shading shading = CalculateNormalMapping(normal, normalize(input.light_dir_depth));
-	return float4(input.LightColor.rgb * shading.Diffuse * alpha, shading.Specular * alpha);
+	return float4(input.LightColor.rgb * shading.Diffuse * factor, shading.Specular * factor);
 }
 
 float4 PSPointLight_Shadow(VertexShaderOutput input) : COLOR
 {
 	float2 light_dir = input.light_dir;
-	float factor = GetShadowFactor(input.TexCoord0) * PointLightIntensity(light_dir, radius, intensity);
-	return float4(input.LightColor.rgb  * factor, 0.0f);
+	float factor = GetShadowFactor(input.TexCoord0) *  PointLightIntensity(light_dir, radius, intensity);
+	// take into account the 'height' of the light, even without NormalMap:
+	// so that the light attentuation behaves identically?
+	float intensity2 = max(dot(float3(0,0,1), normalize(input.light_dir_depth)), 0.0f);
+	return float4(input.LightColor.rgb  * factor * intensity2, 0.0f);
 }
 
 float4 PSPointLight(VertexShaderOutput input) : COLOR
 {
 	float2 light_dir = input.light_dir;
 	float factor = PointLightIntensity(light_dir, radius, intensity);
-	return float4(input.LightColor.rgb  * factor, 0.0f);
+	// take into account the 'height' of the light, even without NormalMap:
+	// so that the light attentuation behaves identically?
+	float intensity2 = max(dot(float3(0, 0, 1), normalize(input.light_dir_depth)), 0.0f);
+	return float4(input.LightColor.rgb  * factor * intensity2, 0.0f);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -168,14 +174,20 @@ float4 PSSpotLight_Shadow(VertexShaderOutput input) : COLOR
 {
 	float2 light_dir = input.light_dir;
 	float factor = GetShadowFactor(input.TexCoord0) * SpotLightIntensity(light_dir, radius, intensity);
-	return float4(input.LightColor.rgb  * factor, 0.0f);
+	// take into account the 'height' of the light, even without NormalMap:
+	// so that the light attenuation behaves identically?
+	float intensity2 = max(dot(float3(0, 0, 1), normalize(input.light_dir_depth)), 0.0f);
+	return float4(input.LightColor.rgb  * factor * intensity2, 0.0f);
 }
 
 float4 PSSpotLight(VertexShaderOutput input) : COLOR
 {
 	float2 light_dir = input.light_dir;
 	float factor = SpotLightIntensity(light_dir, radius, intensity);
-	return float4(input.LightColor.rgb  * factor, 0.0f);
+	// take into account the 'height' of the light, even without NormalMap:
+	// so that the light attenuation behaves identically?
+	float intensity2 = max(dot(float3(0, 0, 1), normalize(input.light_dir_depth)), 0.0f);
+	return float4(input.LightColor.rgb  * factor * intensity2, 0.0f);
 }
 
 /////////////////////////////////////////////////////////////////////////////
