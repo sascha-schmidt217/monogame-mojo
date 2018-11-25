@@ -64,6 +64,7 @@ namespace Mojo.Graphics
         public ShadowCaster ShadowCaster { get; set; }
         public float Specularity { get; set; } = 0.0f;
 
+
         public static implicit operator Texture2D(Image img)
         {
             if (img != null)
@@ -169,6 +170,37 @@ namespace Mojo.Graphics
             RenderTarget = new RenderTarget2D(Global.Game.GraphicsDevice, w, h, false, fmt, DepthFormat.None, 0, usage);
             Init(RenderTarget, new Rectangle(0, 0, w, h), new Vector2(xHandle, yHandle));
             UpdateCoords();
+        }
+
+        public Texture2D SpecularMap
+        {
+            get
+            {
+                if (_specular == null)
+                {
+                    var specularFactor = Math.Max(0, Math.Min(255, (int)(Specularity * 255)));
+                    return Global.DefaultSpecular[specularFactor];
+                }
+                else
+                {
+                    return _specular;
+                }
+            }
+        }
+
+        public Texture2D NormapMap
+        {
+            get
+            {
+                if (_normal == null)
+                {
+                    return Global.DefaultNormal;
+                }
+                else
+                {
+                    return _normal;
+                }
+            }
         }
 
         private void UpdateCoords()

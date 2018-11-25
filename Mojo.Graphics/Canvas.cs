@@ -43,12 +43,12 @@ namespace Mojo.Graphics
 
     public class DrawOp
     {
-        public Image img;
-        public BlendMode blendMode;
-        public Effect effect;
-        public int primType;
-        public int primCount;
-        public int primOffset;
+        public Image Image;
+        public BlendMode BlendMode;
+        public Effect Effect;
+        public int PrimType;
+        public int PrimCount;
+        public int PrimOffset;
     }
 
     public class Canvas : IDisposable
@@ -70,7 +70,9 @@ namespace Mojo.Graphics
         private DrawOp _drawOp = new DrawOp();
 
         // G-Buffer
-        private RenderTargetBinding[] _gBuffer;
+        private RenderTargetBinding[] _gBufferDiffuseNormalSpecular;
+        private RenderTargetBinding[] _gBufferDiffuseNormal;
+        private RenderTargetBinding[] _gBufferDiffuse;
         private Image _diffuseMap;
         private Image _normalMap;
         private Image _specularMap;
@@ -265,7 +267,7 @@ namespace Mojo.Graphics
         }
 
 
-        public void Flush(bool preserveBuffer = false)
+        public void Flush()
         {
             if (_drawBuffer.DrawOps.Count == 0)
             {
@@ -274,16 +276,20 @@ namespace Mojo.Graphics
 
             if (_lighting)
             {
-                // diffuse + normal
-                //
-                Device.SetRenderTargets(_gBuffer);
-                RenderDrawOps();
+                if (NormalmapEnabled && SpecularEnabled)
+                {
+                    Device.SetRenderTargets(_gBufferDiffuseNormalSpecular);
+                }
+                else if(NormalmapEnabled)
+                {
+                    Device.SetRenderTargets(_gBufferDiffuseNormal);
+                }
+                else
+                {
+                    Device.SetRenderTargets(_gBufferDiffuse);
+                }
 
-                // TODO
-                // normal
-                //
-                //Device.SetRenderTarget(_normalMap);
-                //RenderDrawOps();
+                RenderDrawOps();
 
                 // back to default rendertarget
                 //
@@ -294,11 +300,8 @@ namespace Mojo.Graphics
                 RenderDrawOps();
             }
 
-            if (!preserveBuffer)
-            {
-                _drawBuffer.Clear();
-                _drawOp = new DrawOp();
-            }
+            _drawBuffer.Clear();
+            _drawOp = new DrawOp();
         }
 
         public void ClearBuffer()
@@ -398,13 +401,23 @@ namespace Mojo.Graphics
 
             if (refDiffuse != _diffuseMap || refNormal != _normalMap)
             {
-                _gBuffer = new RenderTargetBinding[]
+                _gBufferDiffuseNormalSpecular = new RenderTargetBinding[]
                 {
                         new RenderTargetBinding(_diffuseMap),
                         new RenderTargetBinding(_normalMap),
                         new RenderTargetBinding(_specularMap)
                 };
-            };
+                _gBufferDiffuseNormal = new RenderTargetBinding[]
+                {
+                            new RenderTargetBinding(_diffuseMap),
+                            new RenderTargetBinding(_normalMap)
+                };
+                _gBufferDiffuse = new RenderTargetBinding[]
+                {
+                            new RenderTargetBinding(_diffuseMap)
+                };
+
+            }
 
             // clear gbuffer
             //
@@ -1164,19 +1177,19 @@ namespace Mojo.Graphics
                 BlendMode = _blendMode;
             }
 
-            if (img != _drawOp.img || effect != _drawOp.effect || primType != _drawOp.primType || blendMode != _drawOp.blendMode)
+            if (img != _drawOp.Image || effect != _drawOp.Effect || primType != _drawOp.PrimType || blendMode != _drawOp.BlendMode)
             {
                 _drawOp = _drawBuffer.AddDrawOp();
-                _drawOp.img = img;
-                _drawOp.effect = effect;
-                _drawOp.primType = primType;
-                _drawOp.blendMode = blendMode;
-                _drawOp.primCount = primCount;
-                _drawOp.primOffset = _drawBuffer.Size;
+                _drawOp.Image = img;
+                _drawOp.Effect = effect;
+                _drawOp.PrimType = primType;
+                _drawOp.BlendMode = blendMode;
+                _drawOp.PrimCount = primCount;
+                _drawOp.PrimOffset = _drawBuffer.Size;
             }
             else
             {
-                _drawOp.primCount += primCount;
+                _drawOp.PrimCount += primCount;
             }
 
             return _drawBuffer.AddVertices(primType * primCount);
@@ -1245,11 +1258,9 @@ namespace Mojo.Graphics
 
             foreach (var op in _drawBuffer.DrawOps)
             {
-                var opEffect = op.effect;
-
-                if( opEffect == _defaultEffect)
+                if(op.Effect == _defaultEffect)
                 {
-                    if(op.img == null)
+                    if(op.Image == null)
                     {
                         _defaultEffect.TextureEnabled = false;
                         _defaultEffect.SpecularEnabled = SpecularEnabled;
@@ -1260,33 +1271,26 @@ namespace Mojo.Graphics
                         _defaultEffect.TextureEnabled = true;
                         _defaultEffect.SpecularEnabled = SpecularEnabled;
                         _defaultEffect.NormalEnabled = NormalmapEnabled;
-                        _defaultEffect.Texture = op.img._texture;
+                        _defaultEffect.Texture = op.Image.Texture;
 
                         if(NormalmapEnabled)
                         {
-                            _defaultEffect.Normalmap = op.img._normal ?? Global.DefaultNormal;
+                            _defaultEffect.Normalmap = op.Image.NormapMap;
                         }
-
-                        if (op.img._specular == null)
+                        if(SpecularEnabled)
                         {
-                            var specularFactor = Math.Max(0, Math.Min(255, (int)(op.img.Specularity * 255)));
-                            _defaultEffect.Specularmap = Global.DefaultSpecular[specularFactor];
-                        }
-                        else
-                        {
-                            _defaultEffect.Specularmap = op.img._specular;
+                            _defaultEffect.Specularmap = op.Image.SpecularMap;
                         }
                     }
-                   
                 }
 
-                if (blendMode != op.blendMode)
+                if (blendMode != op.BlendMode)
                 {
-                    blendMode = op.blendMode;
+                    blendMode = op.BlendMode;
                     SetInternalBlendMode(blendMode);
                 }
 
-                Render(_drawBuffer, op.primType, opEffect, op.primOffset, op.primCount * op.primType);
+                Render(_drawBuffer, op.PrimType, op.Effect, op.PrimOffset, op.PrimCount * op.PrimType);
             }
         }
 

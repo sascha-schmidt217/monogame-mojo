@@ -77,7 +77,7 @@ namespace Mojo.Graphics
         private List<PointLightOp> _pointLights = new List<PointLightOp>(1024);
         private List<SpotLightOp> _spotLights = new List<SpotLightOp>(1024);
         private List<ShadowOp> _shadowOps = new List<ShadowOp>(1024);
-        private List<Vector2> _shadowVertices = new List<Vector2>(16536);
+        private List<Vector2> _shadowVertices = new List<Vector2>(65536);
 
         private readonly MojoVertex[] _lightVertices = new MojoVertex[4];
         private readonly MojoVertex[] _shadowCasterVertices = new MojoVertex[4096];
@@ -228,7 +228,7 @@ namespace Mojo.Graphics
 
                             fixed (MojoVertex* ptr = &_shadowCasterVertices[0])
                             {
-                                int len = sop.Length;
+                                int len = Math.Min(_shadowCasterVertices.Length,  sop.Length);
                                 for (int i = 0; i < len; ++i)
                                 {
                                     var v = _shadowVertices[sop.Offset + i];
