@@ -32,7 +32,7 @@ namespace Mojo.Graphics
         public void OnLoad()
         {
             DefaultEffect = new BasicEffect(Global.Device);
-            _buffer = new MojoVertex[65536];
+            _buffer = new MojoVertex[65536/4];
             for(int i = 0; i< _buffer.Length;++i)
             {
                 _buffer[i].Color = Color.Black;

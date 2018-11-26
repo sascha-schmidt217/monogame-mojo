@@ -31,32 +31,28 @@ namespace Mojo.Graphics
 
     public class ShadowOp
     {
-        public ShadowType ShadowType { get; set; } = ShadowType.Illuminated;
-        public int Length { get; set; }
-        public int Offset { get; set; }
+        public ShadowType ShadowType;
+        public int Length;
+        public int Offset;
     }
 
-    public class LightOp
+    public class PointLightOp
     {
         public Transform2D Transform;
+        public Vector2 Location;
         public Color Color;
         public float Alpha;
-        public Vector2 Location;
         public float Range;
         public float Intensity;
         public float Size;
         public float Depth;
     }
 
-    public class SpotLightOp : LightOp
+    public class SpotLightOp : PointLightOp
     {
         public float Inner;
         public float Outer;
         public Vector2 Dir;
-    }
-
-    public class PointLightOp : LightOp
-    {
     }
 
     class SimplePool<T>  where T : new() 
@@ -117,19 +113,20 @@ namespace Mojo.Graphics
 
         private IShadowRenderer _shadowRenderer = new PenumbraShadow();
 
+        private SimplePool<ShadowOp> _shadowOpPool = new SimplePool<ShadowOp>(4096);
         private List<PointLightOp> _pointLights = new List<PointLightOp>(1024);
         private List<SpotLightOp> _spotLights = new List<SpotLightOp>(1024);
 
         private readonly MojoVertex[] _lightVertices = new MojoVertex[4];
         private Buffer _shadowCasterVertices = new Buffer(MAX_SHADOW_CASTER_VERTICES);
 
-        private Matrix _projection;
         private BasicEffect _defaultEffect;
         private LightEffect _lightEffect;
+        private Matrix _projection;
         private Image _lightmap;
         private Image _shadowmap;
 
-        private SimplePool<ShadowOp> _shadowOpPool = new SimplePool<ShadowOp>(4096);
+        
 
         public LightRenderer()
         {

@@ -1038,7 +1038,7 @@ namespace Mojo.Graphics
         /// <summary>
         /// Draws an image using the current [[Color]], [[BlendMode]] and without [[Matrix]] transform.
         /// </summary>
-        public void DrawImageAbs(Image img, float x, float y, float w, float h)
+        public void DrawImageFast(Image img, float x, float y, float w, float h)
         {
             unsafe
             {
@@ -1050,6 +1050,7 @@ namespace Mojo.Graphics
                 ptr[2].Transform(x + w, y + h, img.Quad.u1, img.Quad.v1, _color);
                 ptr[3].Transform(x + 0, y + h, img.Quad.u0, img.Quad.v1, _color);
             }
+
         }
 
         /// <summary>
@@ -1214,7 +1215,7 @@ namespace Mojo.Graphics
                 ptr[2].Transform(quad.vertex2.X + x, quad.vertex2.Y + y, quad.u1, quad.v1, _transform._tanX, _transform._tanY, _transform, _color);
                 ptr[3].Transform(quad.vertex3.X + x, quad.vertex3.Y + y, quad.u0, quad.v1, _transform._tanX, _transform._tanY, _transform, _color);
 
-                if(img.ShadowCaster != null)
+                if(_lighting && img.ShadowCaster != null)
                 {
                     LightRenderer.AddShadowCaster(Matrix, img.ShadowCaster, x + img.Width / 2, y + img.Height / 2);
                 }

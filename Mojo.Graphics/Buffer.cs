@@ -140,6 +140,7 @@ namespace Mojo.Graphics
             Tex0.X = u0;
             Tex0.Y = v0;
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Transform(float x0, float y0, Transform2D t)
         {
@@ -165,34 +166,33 @@ namespace Mojo.Graphics
 
     public class Buffer
     {
-        private int _maxVertes = 0;
-        private MojoVertex[] _vertices;
-        private int _count = 0;
         private DynamicVertexBuffer _vbo;
-        private List<DrawOp> _drawOps = new List<DrawOp>();
         private bool _dirty = false;
-        public int MaxSize => _maxVertes;
-        public int Size => _count;
-        public MojoVertex[] VertexArray => _vertices;
-        public List<DrawOp> DrawOps => _drawOps;
+
+        public int MaxSize { get; private set; }
+        public int Size { get; private set; }
+        public MojoVertex[] VertexArray { get; private set; }
+        public List<DrawOp> DrawOps { get; private set; }
+        public bool VertexBufferEnabled { get; set; }
 
         public Buffer(int maxVerts = Global.MAX_VERTS)
         {
-            _maxVertes = maxVerts;
-            _vertices = new MojoVertex[maxVerts];
+            MaxSize = maxVerts;
+            VertexArray = new MojoVertex[maxVerts];
+            DrawOps = new List<DrawOp>();
         }
 
         public void Clear()
         {
             _dirty = true;
-            _count = 0;
-            _drawOps.Clear();
+            Size = 0;
+            DrawOps.Clear();
         }
 
         public DrawOp AddDrawOp()
         {
             var op = new DrawOp();
-            _drawOps.Add(op);
+            DrawOps.Add(op);
             return op;
         }
 
@@ -201,9 +201,9 @@ namespace Mojo.Graphics
             unsafe
             {
                 _dirty = true;
-                fixed (MojoVertex* vptr = &_vertices[_count])
+                fixed (MojoVertex* vptr = &VertexArray[Size])
                 {
-                    _count += count;
+                    Size += count;
                     return vptr;
                 }
             }
@@ -211,13 +211,11 @@ namespace Mojo.Graphics
 
         public unsafe MojoVertex* GetVerteyPtr(int index)
         {
-            fixed (MojoVertex* vptr = &_vertices[index])
+            fixed (MojoVertex* vptr = &VertexArray[index])
             {
                 return vptr;
             }
         }
-
-        public bool VertexBufferEnabled { get; set; }
 
         public VertexBuffer VertexBuffer
         {
@@ -228,11 +226,10 @@ namespace Mojo.Graphics
                     _dirty = false;
                     if(_vbo == null)
                     {
-                        _vbo = new DynamicVertexBuffer(Global.Device, MojoVertex.VertexDeclaration, _maxVertes, BufferUsage.WriteOnly);
+                        _vbo = new DynamicVertexBuffer(Global.Device, MojoVertex.VertexDeclaration, MaxSize, BufferUsage.WriteOnly);
                     }
-                    _vbo.SetData(_vertices, 0, _count);
+                    _vbo.SetData(VertexArray, 0, Size);
                 }
-
                 return _vbo;
             }
         }
