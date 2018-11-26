@@ -33,7 +33,7 @@ namespace Mojo.Graphics
     {
         public ShadowType ShadowType { get; set; } = ShadowType.Illuminated;
         public int Length { get; set; }
-        public MojoVertex[] Vertices = new MojoVertex[32];
+        public int Offset { get; set; }
     }
 
     public class LightOp
@@ -61,8 +61,8 @@ namespace Mojo.Graphics
 
     class SimplePool<T>  where T : new() 
     {
-        private List<T> _pool;
-        private int _poolIndex = 0;
+        public List<T> _pool;
+        public int _poolIndex = 0;
 
         public SimplePool(int size)
         {
@@ -100,6 +100,7 @@ namespace Mojo.Graphics
     public class LightRenderer : ILightRenderer
     {
         const float DEG_TO_RAD = 0.0174532925199432957692369076848861f;
+        const int MAX_SHADOW_CASTER_VERTICES = 1024 * 1024;
 
         public static BlendState LightBlend = new BlendState
         {
@@ -118,10 +119,10 @@ namespace Mojo.Graphics
 
         private List<PointLightOp> _pointLights = new List<PointLightOp>(1024);
         private List<SpotLightOp> _spotLights = new List<SpotLightOp>(1024);
-        private List<ShadowOp> _shadowOps = new List<ShadowOp>(1024);
 
         private readonly MojoVertex[] _lightVertices = new MojoVertex[4];
-        private readonly MojoVertex[] _shadowCasterVertices = new MojoVertex[4096];
+        private Buffer _shadowCasterVertices = new Buffer(MAX_SHADOW_CASTER_VERTICES);
+        private int _shadowCasterVerticesOffset = 0;
 
         private Matrix _projection;
         private BasicEffect _defaultEffect;
@@ -136,11 +137,6 @@ namespace Mojo.Graphics
             _lightEffect = new LightEffect(Global.Content.Load<Effect>("Effects/light"));
             _defaultEffect = new BasicEffect(Global.Device);
             _shadowRenderer.OnLoad();
-
-            for(int i = 0; i< _shadowCasterVertices.Length; ++i)
-            {
-                _shadowCasterVertices[i].Color = Color.Black;
-            }
         }
 
         public void AddShadowCaster(Transform2D mat, ShadowCaster caster, float tx, float ty)
@@ -148,26 +144,30 @@ namespace Mojo.Graphics
             AddShadowCaster(mat, caster.Vertices, tx, ty, caster.ShadowType);
         }
 
-
         public void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated)
         {
+            if (_shadowCasterVerticesOffset + vertices.Length > MAX_SHADOW_CASTER_VERTICES)
+            {
+                return;
+            }
+
             unsafe
             {
                 var op = _shadowOpPool.Get();
                 op.ShadowType = shadowType;
                 op.Length = vertices.Length;
-
-                _shadowOps.Add(op);
+                op.Offset = _shadowCasterVerticesOffset;
 
                 var tv = new Vector2(tx, ty);
 
-                if (op.Vertices.Length < vertices.Length)
-                    op.Vertices = new MojoVertex[vertices.Length];
-
+                var ptr = _shadowCasterVertices.AddVertices(vertices.Length);
                 for (int i = 0; i < vertices.Length; ++i)
                 {
-                    op.Vertices[i].Transform(vertices[i] + tv, mat);
+                    ptr[i].Transform(vertices[i] + tv, mat);
                 }
+
+                _shadowCasterVerticesOffset += vertices.Length;
+
             }
         }
 
@@ -214,14 +214,16 @@ namespace Mojo.Graphics
             unsafe
             {
                 bool hasShadows = false;
-                foreach (var op in _shadowOps)
+
+                for(int j = 0; j < _shadowOpPool._poolIndex; ++j)
                 {
+                    var op = _shadowOpPool._pool[j];
                     for (int i = 0; i < op.Length; ++i)
                     {
                         // shadow caster is visible from light?
-                        if (Vector2.DistanceSquared(op.Vertices[i].Position, lv) < range)
+                        if (Vector2.DistanceSquared(_shadowCasterVertices.VertexArray[op.Offset+i].Position, lv) < range)
                         {
-                            while(!_shadowRenderer.AddShadowVertices(op.ShadowType, op.Vertices, 0, op.Length))
+                            while(!_shadowRenderer.AddShadowVertices(op.ShadowType, _shadowCasterVertices.VertexArray, op.Offset, op.Length))
                             {
                                 Global.Device.BlendState = MojoBlend.BlendShadow;
                                 Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
@@ -255,8 +257,12 @@ namespace Mojo.Graphics
                     //
                     bool _defaultShaderInitialize = false;
 
-                    foreach (var sop in _shadowOps)
+                    Global.Device.SetVertexBuffer(_shadowCasterVertices.VertexBuffer);
+                    Global.Device.Indices = Global._iboFan;
+
+                    for (int j = 0; j < _shadowOpPool._poolIndex; ++j)
                     {
+                        var sop = _shadowOpPool._pool[j];
 
                         if (sop.ShadowType != ShadowType.Occluded) 
                         {
@@ -276,14 +282,12 @@ namespace Mojo.Graphics
                                     break;
                             }
 
-                            Global.Device.DrawUserIndexedPrimitives<MojoVertex>(PrimitiveType.TriangleList,
-                                    sop.Vertices, 0, sop.Length, Global.FanIndices, 0, sop.Length - 2);
+                            Global.Device.DrawIndexedPrimitives(PrimitiveType.TriangleList, sop.Offset, 0, sop.Length - 2);
                         }
                     }
                 }
             }
         }
-
 
         public static Image CreateImage(int w, int h, ref Image img)
         {
@@ -393,7 +397,9 @@ namespace Mojo.Graphics
             _shadowOpPool.Reset();
             _spotLights.Clear();
             _pointLights.Clear();
-            _shadowOps.Clear();
+            //_shadowOps.Clear();
+            _shadowCasterVertices.Clear();
+            _shadowCasterVerticesOffset = 0;
         }
 
         private void DrawPointLight(PointLightOp op)

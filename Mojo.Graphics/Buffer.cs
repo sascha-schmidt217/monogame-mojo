@@ -165,23 +165,26 @@ namespace Mojo.Graphics
 
     public class Buffer
     {
+        private int _maxVertes = 0;
         private MojoVertex[] _vertices;
         private int _count = 0;
         private DynamicVertexBuffer _vbo;
         private List<DrawOp> _drawOps = new List<DrawOp>();
         private bool _dirty = false;
-
+        public int MaxSize => _maxVertes;
         public int Size => _count;
         public MojoVertex[] VertexArray => _vertices;
         public List<DrawOp> DrawOps => _drawOps;
 
         public Buffer(int maxVerts = Global.MAX_VERTS)
         {
+            _maxVertes = maxVerts;
             _vertices = new MojoVertex[maxVerts].Select( (elem) => new MojoVertex()).ToArray();
         }
 
         public void Clear()
         {
+            _dirty = true;
             _count = 0;
             _drawOps.Clear();
         }
@@ -225,7 +228,7 @@ namespace Mojo.Graphics
                     _dirty = false;
                     if(_vbo == null)
                     {
-                        _vbo = new DynamicVertexBuffer(Global.Device, MojoVertex.VertexDeclaration, Global.MAX_VERTS, BufferUsage.WriteOnly);
+                        _vbo = new DynamicVertexBuffer(Global.Device, MojoVertex.VertexDeclaration, _maxVertes, BufferUsage.WriteOnly);
                     }
                     _vbo.SetData(_vertices, 0, _count);
                 }
