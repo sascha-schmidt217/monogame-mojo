@@ -61,7 +61,7 @@ namespace Mojo.Graphics
         }
 
 
-        public bool AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
+        public bool AddShadowVertices(ShadowType type, MojoVertex[] _shadowVertices, int start, int length)
         {
             if((ShadowCount + length) *4 >= ShadowBuffer.Length)
             {
@@ -73,10 +73,10 @@ namespace Mojo.Graphics
                 var vert0 = start;
                 var nverts = length;
 
-                Vector2 prevPoint = _shadowVertices[vert0 + nverts - 1];
+                Vector2 prevPoint = _shadowVertices[vert0 + nverts - 1].Position;
                 for (int i = 0; i < nverts; ++i)
                 {
-                    Vector2 currentPoint = _shadowVertices[vert0 + i];
+                    Vector2 currentPoint = _shadowVertices[vert0 + i].Position;
 
                     fixed (MojoVertex* tp = &_buffer[_ShadowCount++ * 4])
                     {

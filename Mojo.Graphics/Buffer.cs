@@ -140,7 +140,27 @@ namespace Mojo.Graphics
             Tex0.X = u0;
             Tex0.Y = v0;
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void Transform(float x0, float y0, Transform2D t)
+        {
+            if (t._tFormed)
+            {
+                Position.X = x0 * t._ix + y0 * t._jx + t._tx;
+                Position.Y = x0 * t._iy + y0 * t._jy + t._ty;
+            }
+            else
+            {
+                Position.X = x0;
+                Position.Y = y0;
+            }
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void Transform(Vector2 p, Transform2D t)
+        {
+            Position.X = p.X * t._ix + p.Y * t._jx + t._tx;
+            Position.Y = p.X * t._iy + p.Y * t._jy + t._ty;
+        }
     }
 
     public class Buffer

@@ -45,7 +45,7 @@ namespace Mojo.Graphics
             lv = location;
         }
 
-        public bool AddShadowVertices(ShadowType type, List<Vector2> _shadowVertices, int start, int length)
+        public bool AddShadowVertices(ShadowType type, MojoVertex[] _shadowVertices, int start, int length)
         {
             if ((ShadowCount + length) * 4 >= ShadowBuffer.Length)
             {
@@ -55,11 +55,11 @@ namespace Mojo.Graphics
             var vert0 = start;
             var nverts = length;
             
-            Vector2 tv = _shadowVertices[vert0 + nverts - 1];
+            Vector2 tv = _shadowVertices[vert0 + nverts - 1].Position;
             for (int i = 0; i < nverts; ++i)
             {
                 var pv = tv;
-                tv = _shadowVertices[vert0 + i];
+                tv = _shadowVertices[vert0 + i].Position;
             
                 if (IsBackFacing(lv, pv, tv))
                     continue;
