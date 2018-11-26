@@ -122,7 +122,6 @@ namespace Mojo.Graphics
 
         private readonly MojoVertex[] _lightVertices = new MojoVertex[4];
         private Buffer _shadowCasterVertices = new Buffer(MAX_SHADOW_CASTER_VERTICES);
-        private int _shadowCasterVerticesOffset = 0;
 
         private Matrix _projection;
         private BasicEffect _defaultEffect;
@@ -146,7 +145,7 @@ namespace Mojo.Graphics
 
         public void AddShadowCaster(Transform2D mat, Vector2[] vertices, float tx, float ty, ShadowType shadowType = ShadowType.Illuminated)
         {
-            if (_shadowCasterVerticesOffset + vertices.Length > MAX_SHADOW_CASTER_VERTICES)
+            if (_shadowCasterVertices.Size + vertices.Length > MAX_SHADOW_CASTER_VERTICES)
             {
                 return;
             }
@@ -156,7 +155,7 @@ namespace Mojo.Graphics
                 var op = _shadowOpPool.Get();
                 op.ShadowType = shadowType;
                 op.Length = vertices.Length;
-                op.Offset = _shadowCasterVerticesOffset;
+                op.Offset = _shadowCasterVertices.Size;
 
                 var tv = new Vector2(tx, ty);
 
@@ -165,8 +164,6 @@ namespace Mojo.Graphics
                 {
                     ptr[i].Transform(vertices[i] + tv, mat);
                 }
-
-                _shadowCasterVerticesOffset += vertices.Length;
 
             }
         }
@@ -202,6 +199,15 @@ namespace Mojo.Graphics
             });
         }
 
+        private void FlushShadowBuffer()
+        {
+            _shadowRenderer.Effect.CurrentTechnique.Passes.First().Apply();
+            Global.Device.BlendState = MojoBlend.BlendShadow;
+            Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
+                        PrimitiveType.TriangleList, _shadowRenderer.ShadowBuffer, 0, _shadowRenderer.ShadowCount * 4,
+                        Global.QuadIndices, 0, _shadowRenderer.ShadowCount * 2);
+        }
+
         private void DrawShadows(Vector2 lv, float size, float range)
         {
             // clear shadow map
@@ -223,14 +229,11 @@ namespace Mojo.Graphics
                         // shadow caster is visible from light?
                         if (Vector2.DistanceSquared(_shadowCasterVertices.VertexArray[op.Offset+i].Position, lv) < range)
                         {
-                            while(!_shadowRenderer.AddShadowVertices(op.ShadowType, _shadowCasterVertices.VertexArray, op.Offset, op.Length))
+                            if(!_shadowRenderer.AddShadowVertices(op.ShadowType, _shadowCasterVertices.VertexArray, op.Offset, op.Length))
                             {
-                                Global.Device.BlendState = MojoBlend.BlendShadow;
-                                Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
-                                            PrimitiveType.TriangleList, _shadowRenderer.ShadowBuffer, 0, _shadowRenderer.ShadowCount * 4,
-                                            Global.QuadIndices, 0, _shadowRenderer.ShadowCount * 2);
-
+                                FlushShadowBuffer();
                                 _shadowRenderer.UpdateLight(lv, size);
+                                _shadowRenderer.AddShadowVertices(op.ShadowType, _shadowCasterVertices.VertexArray, op.Offset, op.Length);
                             }
                             hasShadows = true;
                             break;
@@ -245,12 +248,7 @@ namespace Mojo.Graphics
                     //
                     if (_shadowRenderer.ShadowCount > 0)
                     {
-                        _shadowRenderer.Effect.CurrentTechnique.Passes.First().Apply();
-                        Global.Device.BlendState = MojoBlend.BlendShadow;
-                        Global.Device.DrawUserIndexedPrimitives<MojoVertex>(
-                                    PrimitiveType.TriangleList, _shadowRenderer.ShadowBuffer, 0, _shadowRenderer.ShadowCount * 4,
-                                    Global.QuadIndices, 0, _shadowRenderer.ShadowCount * 2);
-
+                        FlushShadowBuffer();
                     }
 
                     // cutting out the shadow caster from the shadow volume
@@ -397,9 +395,7 @@ namespace Mojo.Graphics
             _shadowOpPool.Reset();
             _spotLights.Clear();
             _pointLights.Clear();
-            //_shadowOps.Clear();
             _shadowCasterVertices.Clear();
-            _shadowCasterVerticesOffset = 0;
         }
 
         private void DrawPointLight(PointLightOp op)

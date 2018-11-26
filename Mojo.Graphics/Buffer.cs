@@ -179,7 +179,7 @@ namespace Mojo.Graphics
         public Buffer(int maxVerts = Global.MAX_VERTS)
         {
             _maxVertes = maxVerts;
-            _vertices = new MojoVertex[maxVerts].Select( (elem) => new MojoVertex()).ToArray();
+            _vertices = new MojoVertex[maxVerts];
         }
 
         public void Clear()
