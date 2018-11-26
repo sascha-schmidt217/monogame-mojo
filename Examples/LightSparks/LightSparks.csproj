@@ -63,7 +63,7 @@
     <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Mojo.Graphics\Mojo.Graphics.csproj">
+    <ProjectReference Include="..\..\Mojo.Graphics\Mojo.Graphics.csproj">
       <Project>{bb028c60-434d-4dbe-84ea-c07df07ccace}</Project>
       <Name>Mojo.Graphics</Name>
     </ProjectReference>
