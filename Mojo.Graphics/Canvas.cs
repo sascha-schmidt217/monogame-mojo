@@ -54,7 +54,7 @@ namespace Mojo.Graphics
     public class Canvas : IDisposable
     {
         // internal state
-        private readonly bool initialized = false;
+        private bool initialized = false;
         private Stack<Transform2D> _matrixStack = new Stack<Transform2D>();
         private Transform2D _transform = new Transform2D();
         private bool _lighting = false;
@@ -186,7 +186,7 @@ namespace Mojo.Graphics
         {
             get
             {
-                if (_lightRenderer == null)
+                if (_lightRenderer == null && _lighting)
                 {
                     _lightRenderer = new LightRenderer();
                 }
@@ -387,6 +387,8 @@ namespace Mojo.Graphics
 
             _lighting = true;
 
+            LightRenderer?.Reset();
+
             Begin();
 
             // create gbuffer
@@ -524,7 +526,7 @@ namespace Mojo.Graphics
         }
 
 
-        public void Begin()
+        public void Begin(RenderTarget2D target = null, Effect effect = null)
         {
             Flush();
 
@@ -546,9 +548,8 @@ namespace Mojo.Graphics
             BlendMode = BlendMode.Alpha;
             Color = Color.White;
             Alpha = 1.0f;
-            RenderTarget = null;
-            _defaultEffect.WorldViewProjection = WorldViewProj;
-            Effect = _defaultEffect;
+            RenderTarget = target;
+            Effect = effect;
         }
 
         
@@ -557,13 +558,11 @@ namespace Mojo.Graphics
         {
             Flush();
 
-            // TODO 
-            // check: got error without this call, when switching Lighting on/Off
-            LightRenderer.Reset(); 
+            _PostEffectPipeline.Render(this);
 
-            // the device could be used in multiple canvases,
-            // herefore the rendertarget must be deactivated.
+            // ... .Preset needs Rendertarget == null
             Device.SetRenderTarget(null);
+            _currentRendertarget = null;
         }
 
         /// <summary>
@@ -1058,6 +1057,8 @@ namespace Mojo.Graphics
         /// </summary>
         public void AddShadowCaster(Vector2[] vertices, float x, float y, ShadowType shadowType = ShadowType.Illuminated)
         {
+            if (!_lighting) return;
+
             LightRenderer.AddShadowCaster(Matrix, vertices, x, y, shadowType);
         }
 
@@ -1066,6 +1067,8 @@ namespace Mojo.Graphics
         /// </summary>
         public void AddShadowCaster(Vector2[] vertices, float x, float y, float rz, ShadowType shadowType = ShadowType.Illuminated)
         {
+            if (!_lighting) return;
+
             PushMatrix();
             Translate(x, y);
             Rotate(rz);
@@ -1078,6 +1081,8 @@ namespace Mojo.Graphics
         /// </summary>
         public void AddShadowCaster(Vector2[] vertices, float x, float y, float rz, float sx, float sy, ShadowType shadowType = ShadowType.Illuminated)
         {
+
+            if (!_lighting) return;
             PushMatrix();
             TranslateRotateScale(x, y, sx, sy, rz);
             AddShadowCaster(vertices, 0,0, shadowType);
@@ -1106,11 +1111,19 @@ namespace Mojo.Graphics
             PopMatrix();
         }
 
-        /// <summary>
-        /// Adds a point light to the canvas.
-        /// </summary>
+       /// <summary>
+       /// 
+       /// </summary>
+       /// <param name="x"></param>
+       /// <param name="y"></param>
+       /// <param name="range"></param>
+       /// <param name="intensity">interpolstion: 1 = linear, >1 qudratic ...</param>
+       /// <param name="size"> used for shadows</param>
+       /// <param name="depth"> Z Position</param>
         public void AddPointLight(float x, float y, float range, float intensity = 4.0f, float size = 4.0f, float depth = 96.0f)
         {
+            if (!_lighting) return;
+
             PushMatrix();
             Translate(x, y);
             LightRenderer.AddPointLight(Matrix, Color, range, intensity, size, depth);
@@ -1123,6 +1136,8 @@ namespace Mojo.Graphics
         public void AddSpotLight(float x, float y, float angle, float range,
             float inner = 25, float outer = 45, float intensity = 4.0f, float size = 4.0f, float depth = 96.0f)
         {
+            if (!_lighting) return;
+
             PushMatrix();
             Translate(x, y);
             Rotate(angle);
@@ -1169,6 +1184,8 @@ namespace Mojo.Graphics
             RenderTarget = _originalRendertarget;
             WorldViewProj = Microsoft.Xna.Framework.Matrix.CreateOrthographicOffCenter(+.0f, Width + .0f, Height + .0f, +.0f, 0, 1);
             SetScissor(0, 0, Width, Height);
+
+            initialized = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1225,11 +1242,6 @@ namespace Mojo.Graphics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetRenderTargetInternal(RenderTarget2D value)
         {
-            if (initialized && value == _currentRendertarget)
-            {
-                return;
-            }
-
             Flush();
 
             _currentRendertarget = value;
@@ -1254,7 +1266,7 @@ namespace Mojo.Graphics
                 _defaultEffect.WorldViewProjection = WorldViewProj;
                 SetScissor(0, 0, Width, Height);
             }
-
+    
             Device.SetRenderTarget(_currentRendertarget);
         }
 

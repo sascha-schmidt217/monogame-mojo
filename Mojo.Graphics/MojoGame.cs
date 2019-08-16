@@ -18,16 +18,15 @@ namespace Mojo.Graphics
 
         public MojoGame(int width, int height, bool fullScreen)
         {
-            Global.Initialize(this);
-
-            Width = width;
-            Height = height;
-
             DeviceManager = new GraphicsDeviceManager(this);
             DeviceManager.PreferredBackBufferWidth = width;
             DeviceManager.PreferredBackBufferHeight = height;
             DeviceManager.IsFullScreen = fullScreen;
 
+            Global.Initialize(this);
+
+            Width = width;
+            Height = height;
         }
         protected override void LoadContent()
         {

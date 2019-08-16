@@ -64,8 +64,8 @@ namespace Mojo.Graphics
         public bool AddShadowVertices(ShadowType type, MojoVertex[] _shadowVertices, int start, int length)
         {
             if((ShadowCount + length) *4 >= ShadowBuffer.Length)
-            {
-                return false;
+            { 
+               return false;
             }
 
             unsafe
